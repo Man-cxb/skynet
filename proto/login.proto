@@ -1,0 +1,103 @@
+package proto;
+
+// 登录设备信息
+message device
+{
+	required  string  ip 			= 1;	// 登陆IP
+	required  string  machine_code 	= 2;	// 登陆机器码
+	optional  string  net_identify 	= 3;	// 网络标识 0-WIFI；1-2G；2-3G；3-4G
+	optional  string  ssid_name		= 4;	// 用户使用无线网时的ssid名称
+	required  string  channel		= 5;	// 用户登陆包体渠道产品号
+	required  string  channel_ver 	= 6;	// 登陆包体版本号
+	required  int32   terminal 		= 7;	// 终端类型 0-安卓端 1-苹果端 2-pc
+	optional  string  terminal_model= 8;	// 终端机型
+	optional  string  os_type 		= 9;	// 操作系统类型
+}
+
+// 创建帐户
+message cs_login_create
+{
+	required string  name 			= 1;   	// 帐户名
+	required int32   type 			= 2;	// 类型 1-账号密码 2-手机号码 4-sdk登陆
+	optional string  passwd 		= 3;	// 密码，密码登录时需要使用
+	optional string  sms_code		= 4;	// 短信验证码 (注册成功后，可考虑通过短信向玩家发送登录密码)
+	optional int32 	 sms_type 		= 5;	// 参见sms_tpl.xls,模板ID
+	optional int64 	 server_id 		= 7;	// 客户端选择登陆哪个服务器
+	optional string  token 			= 8;	// 服务平台token
+	optional string  version 		= 9;	// 客户端版本
+	optional string  channel 		= 10;	// 渠道
+	optional device	 dev 			= 11;	// 设备信息
+}
+
+// 登录验证
+message cs_login_verify
+{
+	required int32   type 			= 1;	// 0-游客登录(带密码时与密码登录一致，否则注册游客帐号) 1-密码登录 2-手机号码 3-授权码登录 4-sdk登陆
+	optional string  name 			= 2;	// 帐户名
+	optional string  passwd 		= 3;	// 密码
+	optional string  auth_code		= 4;	// 授权码
+	optional string  sms_code 		= 5;	// 短信验证码
+	optional int32 	 sms_type 		= 6;	// 参见sms_tpl.xls,模板ID
+	optional int64 	 server_id 		= 7;	// 客户端选择登陆哪个服务器
+	optional string  token 			= 8;	// 服务平台token
+	optional string  version 		= 9;	// 客户端版本
+	optional string  channel 		= 10;	// 渠道
+	optional device	 dev 			= 11;	// 设备信息
+}
+
+// 登录验证
+message sc_login_verify_not_exist
+{
+	required int32   type 			= 1;	// 0-游客登录(带密码时与密码登录一致，否则注册游客帐号) 1-密码登录 2-授权码登录
+	optional string  name 			= 2;	// 帐户名
+	optional int32   error_type 	= 3;	// 1, 账号不存在, 2 密码或者授权码错误
+}
+
+// 授权码信息
+message sc_login_auth_info
+{
+	required string  name 			= 1;	// 帐户名
+	required string  auth_code		= 2;	// 授权码
+}
+
+// 游客帐号信息
+message sc_login_vistor_info
+{
+	required string  name 			= 1;	// 帐号名
+	required string  passwd 		= 2;	// 密码(明文)
+}
+
+// 通知前端连接游戏服
+message sc_login_server_info
+{
+	required int64   account_id 	= 1; 	// 帐户ID
+	optional string  login_key 		= 2;  	// 登录KEY
+	optional string  domain 		= 3;	// 逻辑服域名
+	optional int32   port 			= 4;	// 逻辑服端口
+	optional int64	 server_id 		= 5;	// 返回客户端当前服务器的id
+}
+
+// 请求服务器列表
+message cs_login_server_list
+{
+	optional string channel = 1;			// 渠道
+}
+
+// 服务器消息
+message server
+{
+	required int64 	server_id 	= 1; 		// 服务器id
+	required int32 	status 		= 2;		// 服务器状态 0 流畅 1 火爆
+	required int32 	tag 		= 3; 		// 服务器标签 0 正常 1 新服
+	required int32 	opentype 	= 4; 		// 开启状态 0 正常 1 维护 2 关闭
+	required int32 	sort 		= 5;		// 排序 >
+	required string name 		= 6;		// 服务器名字
+}
+
+// 返回服务器列表
+message sc_login_server_list
+{
+	repeated int64 	history 	= 1; 	// 最近登陆的服务器列表
+	required int64 	recommend 	= 2;	// 推荐服务器id
+	repeated server list 		= 3;	// 服务器列表
+}

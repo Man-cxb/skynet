@@ -1,0 +1,2 @@
+  `skynet`集成了mongo的driver，mongo_collection:findOne、mongo_collection:findAndModify、mongo_cursor:next、mongo_client:runCommand、mongo_db:runCommand等接口会返回bson库的解析结果，对于返回需要获得某字段的类型时，使用bson.type会更严谨。
+bson.type会返回两个值，第一个是数据的类型，第二个是数据本身，特别的，为了区分bson的null与lua层的nil，bson.type在检查到数据类型为TNIL时，数据类型返回为"nil"，数据本身返回nil，当检查到数据类型为bson的null时，数据类型返回为"nil"，数据本身返回一个特殊的字符串。若只是想比较bson的某个字段是否为bson的null，则可以直接与bson.null进行比较(如在检查findAndModify的结果时，检查是否找到并修改了数据，可以检查返回值的value字段与bson.null是否相等)。

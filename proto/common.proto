@@ -1,0 +1,123 @@
+// 协议命名规则：cs_XXX_YYY sc_XXX_YYY
+// cs 前端发送到后端 sc 后端发送到前端 XXX 为模块名 YYY 为协议名
+// 协议包，所有协议的外包
+package proto;
+
+message transfer
+{
+	required  string  name 		= 1;	// 协议名
+	required  bytes   body 		= 2;	// 协议体
+	optional  int32   session 	= 3;	// rpc调用，需要填写这个字段
+}
+
+// ping包，用于保持连接
+message cs_ping
+{
+	required int32 client_time 	= 1;	// 客户端时间
+}
+
+// ping包，用于保持连接
+message sc_ping
+{
+	required int32 server_time 	= 1;	// 服务端时间
+	optional int32 client_time 	= 2;	// 客户端时间
+}
+
+// 错误提示
+message sc_err
+{
+	required int32  code 		= 1;	// 错误码
+	optional string content 	= 2;	// 错误内容
+	optional string proto_name 	= 3;	// 协议名
+}
+
+// 提示
+message sc_tips
+{
+	required int32  show_type	= 1;	// 提示类型 根据tipsData表字段type进行配置
+	optional int32  tip_id		= 2;	// 提示ID 根据tipsData表字段id进行配置 为0时表示直接展示内容
+	optional string content 	= 3;	// 需要展示的内容
+	optional string params		= 4;	// 参数，当用模块展示时，指明参数
+}
+
+// 公告信息
+message bulletin
+{
+	required 	int32 	flip 		= 1;
+	required 	string 	title 		= 2;
+	required 	string 	context 	= 3;
+	required 	int32 	sort 		= 4;
+	required 	string 	button		= 5;
+	required 	string 	image 		= 6;
+	required 	string 	link 		= 7;
+	required 	int32 	template 	= 8;
+	required 	int32 	mark 		= 9;
+}
+
+// 获取公告信息
+message cs_bulletin
+{
+	
+}
+
+// 公告(登陆时服务器会自动下发, 客户端也可以通过cs_bulletin主动获取)
+message sc_bulletin
+{
+	repeated bulletin list = 1; // 公告列表
+}
+
+message chat_sender
+{
+	required string name 	= 1;	// 名字
+	optional int64 	id 		= 2;	// id
+	optional string avatar 	= 3;	// 头像
+	optional string addr 	= 4;	// 地址
+	optional int32	title 	= 5;	// 头衔
+	optional string server 	= 6;	// 服务器
+	optional int32 	level 	= 7;	// 等级
+	optional int32 	vip 	= 8;	// vip等级
+}
+
+message sc_chat
+{
+	required int32 			channel 	= 1;	// 频道
+	required string 		context 	= 2; 	// 内容
+	required int32 			time 		= 3;	// 发送时间
+	required chat_sender 	sender 		= 4;	// 发送者
+	optional string 		link 		= 5;	// 链接
+	optional int32 			addressee 	= 6;	// 接收人
+	optional int64 			msg_id 		= 7;	// 消息id
+}
+
+message cs_chat_send_message
+{
+	required int32 	channel 	= 1;	// 频道
+	required string context 	= 2; 	// 内容
+	optional int32 	addressee 	= 3;	// 接收人(私聊需要account_id)
+	optional string link 		= 4;	// 链接
+}
+
+message cs_chat_get_history
+{
+	repeated int32 	channel 	= 1;	// 频道
+}
+
+message chat_history
+{
+	required string 		context 	= 1; 	// 内容
+	required int32 			time 		= 2;	// 发送时间
+	required chat_sender 	sender 		= 3;	// 发送者
+	optional string 		link 		= 4;	// 链接
+	optional int32 			addressee 	= 5;	// 接收人
+	optional int64 			msg_id 		= 6;	// 消息id
+}
+
+message sc_chat_get_history
+{
+	message channel_history
+	{
+		repeated chat_history list = 1; 	// 聊天历史记录
+		required int32 channel = 2;			// 频道
+	}
+	repeated channel_history list = 1;
+}
