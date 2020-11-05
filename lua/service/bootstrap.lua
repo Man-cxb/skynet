@@ -44,12 +44,14 @@ skynet.start(function()
 	-- pcall(skynet.newservice,skynet.getenv "start" or "main")
 
 	-- 启动logind 开始监听端口8001
-	skynet.newservice "logind"
-	skynet.newservice "login_gated"
-	skynet.call(".login_gated", "lua", "open" , {
-		port = 8001,
-		maxclient = 64
-	})
+	-- skynet.newservice "logind"
+	-- skynet.newservice "login_gated"
+	-- skynet.call(".login_gated", "lua", "open" , {
+	-- 	port = 8001,
+	-- 	maxclient = 64
+	-- })
+
+	skynet.newservice("db")
 
 	--[[
 	-- 启动gated 初始化 

@@ -3,6 +3,7 @@ local skynet = require "skynet"
 local parser = require "parser"
 local misc = require "misc"
 require "tool"
+require "loginProto"
 
 local string = string
 local assert = assert
@@ -32,14 +33,8 @@ function CMD.logout(uid, subid)
 	end
 end
 
-local function send_client_proto(fd, name, msg)
+function send_client_proto(fd, name, msg)
 	skynet.send(".login_gated", "lua", "send_socket", fd, name, msg)
-end
-
-LoginProto = LoginProto or {}
-function LoginProto:cs_login_verify(fd)
-	skynet.error("开始登陆验证。。。", fd, V2S(self))
-	send_client_proto(fd, "sc_login_vistor_info",{name = "cxd", passwd = "123456"})
 end
 
 skynet.start(function()
