@@ -43,28 +43,16 @@ skynet.start(function()
 	-- skynet.newservice "service_mgr"
 	-- pcall(skynet.newservice,skynet.getenv "start" or "main")
 
+	local login_gate = skynet.newservice "gated"
+	skynet.name(".login_gated", login_gate)
 	-- 启动logind 开始监听端口8001
-	-- skynet.newservice "logind"
-	-- skynet.newservice "login_gated"
-	-- skynet.call(".login_gated", "lua", "open" , {
-	-- 	port = 8001,
-	-- 	maxclient = 64
-	-- })
+	skynet.newservice "logind"
+	
+	local game_gate = skynet.newservice "gate"
+	skynet.name(".game_gated", game_gate)
+	skynet.newservice "agentmgr"
 
-	skynet.newservice("dbmgr")
+	-- skynet.newservice("dbmgr")
 
-	--[[
-	-- 启动gated 初始化 
-	skynet.newservice "gated"
-
-	-- 调用gated 开始监听8888端口，
-	skynet.call(".gate", "lua", "open" , {
-		port = 8888,
-		maxclient = 64,
-		servername = "sample",
-	})
 	skynet.newservice("debug_console", 8000)
-
-	skynet.exit()
-	]]
 end)

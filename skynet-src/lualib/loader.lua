@@ -29,7 +29,6 @@ package.path , LUA_PATH = LUA_PATH
 package.cpath , LUA_CPATH = LUA_CPATH
 
 local service_path = string.match(pattern, "(.*/)[^/?]+$")
-
 if service_path then
 	service_path = string.gsub(service_path, "?", args[1])
 	package.path = service_path .. "?.lua;" .. package.path

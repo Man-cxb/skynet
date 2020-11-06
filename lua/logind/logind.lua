@@ -3,7 +3,7 @@ local skynet = require "skynet"
 local parser = require "parser"
 local misc = require "misc"
 require "tool"
-require "loginProto"
+require "logind.loginProto"
 
 local string = string
 local assert = assert
@@ -62,4 +62,11 @@ skynet.start(function()
 	skynet.register ".logind"
 	-- 注册协议
 	register_proto()
+
+
+	skynet.call(".login_gated", "lua", "open" , {
+		port = 8001,
+		maxclient = 64,
+		server_name = ".logind"
+	})
 end)

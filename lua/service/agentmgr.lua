@@ -1,3 +1,4 @@
+require "skynet.manager"
 local skynet = require "skynet"
 
 local gate
@@ -33,12 +34,6 @@ function CMD.afk(source)
 	skynet.error(string.format("AFK"))
 end
 
-skynet.register_protocol {
-	name = "client",
-	id = skynet.PTYPE_CLIENT,
-	unpack = skynet.tostring,
-}
-
 skynet.start(function()
 	-- If you want to fork a work thread , you MUST do it in CMD.login
 	skynet.dispatch("lua", function(session, source, command, ...)
@@ -46,10 +41,11 @@ skynet.start(function()
 		skynet.ret(skynet.pack(f(source, ...)))
 	end)
 
-	skynet.dispatch("client", function(_,_, msg)
-		-- the simple echo service
-		skynet.sleep(10)	-- sleep a while
-		skynet.error("------agent-->>", msg)
-		skynet.ret(msg)
-	end)
+	skynet.register ".agentmgr"
+
+	skynet.call(".game_gated", "lua", "open" , {
+		port = 8888,
+		maxclient = 64,
+		server_name = ".agentmgr"
+	})
 end)

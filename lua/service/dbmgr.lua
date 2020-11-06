@@ -147,7 +147,11 @@ function cmd.save_data(name, data, is_insert)
 end
 
 function cmd.sync_save_data(name, data, is_insert)
-
+    local sql, value = gen_insert_sql(name, data, is_insert)
+    if not sql then
+        return
+    end
+    return query_bd(strfmt(sql, table.unpack(value)))
 end
 
 
