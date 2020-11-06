@@ -51,7 +51,7 @@ skynet.start(function()
 	-- 	maxclient = 64
 	-- })
 
-	skynet.newservice("db")
+	skynet.newservice("dbmgr")
 
 	--[[
 	-- 启动gated 初始化 
