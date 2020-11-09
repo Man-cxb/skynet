@@ -1,3 +1,4 @@
+require "common"
 require "skynet.manager"
 local skynet = require "skynet"
 local parser = require "parser"
@@ -10,6 +11,7 @@ local assert = assert
 
 local server_list = {}
 local user_online = {}
+local err_cfg = {}
 
 local function register_proto()
     local path = "./proto"
@@ -20,12 +22,11 @@ local function register_proto()
     end
 end
 
-local CMD = {}
-function CMD.register_gate(server, address)
+function Accept.register_gate(server, address)
 	server_list[server] = address
 end
 
-function CMD.logout(uid, subid)
+function Accept.logout(uid, subid)
 	local u = user_online[uid]
 	if u then
 		skynet.error(string.format("%s@%s is logout", uid, u.server))
@@ -33,8 +34,18 @@ function CMD.logout(uid, subid)
 	end
 end
 
-function send_client_proto(fd, name, msg)
-	skynet.send(".login_gated", "lua", "send_socket", fd, name, msg)
+function Accept.login(player_id)
+	local fd = skynet.call(".agentmgr", "lua", "launcher_agent", player_id)
+	user_online[player_id] = fd
+end
+
+function Accept.send_client_proto(fd, name, msg)
+	skynet.send(".login_gated", "lua", "send_proto", fd, name, msg)
+end
+
+function Accept.send_err(name, code, msg, session)
+	local cfg = err_cfg[code] or {}
+	Accept.send_client_proto("sc_err", {proto_name = name, code = cfg.id or 0, content = msg, session = session})
 end
 
 skynet.start(function()
@@ -44,7 +55,7 @@ skynet.start(function()
 		if func then
 			local ok, err, succ, code = pcall(func, parm, fd)
 			if not ok then
-				skynet.error(string.format("call funciton %s fail, parm: ",proto_name, V2S(parm)))
+				skynet.error(string.format("call funciton %s fail, parm: ",proto_name, V2S(parm)), err)
 			end
 			
 			if type(succ) == "false" then
@@ -67,6 +78,6 @@ skynet.start(function()
 	skynet.call(".login_gated", "lua", "open" , {
 		port = 8001,
 		maxclient = 64,
-		server_name = ".logind"
+		gate_type = "login"
 	})
 end)

@@ -1,3 +1,4 @@
+require ""
 require "skynet.manager"
 local skynet = require "skynet"
 local netpack = require "skynet.netpack"
@@ -13,15 +14,30 @@ local queue		-- message queue
 local maxclient	-- max client
 local nodelay = false
 local socket	-- listen socket
-local gate_name
+local gate_type
 
 -- 协议请求
 local function do_request(fd, message)
 	local transfer = protobuf.decode("proto.transfer", message)
 	if transfer then
-		local msg = protobuf.decode(transfer.name, transfer.body)
-		skynet.error("--收到协议--->", transfer.name, V2S(msg))
-		return skynet.tostring(skynet.rawcall(gate_name, "lua", skynet.pack(string.sub(transfer.name, 7), msg, fd)))
+		local body = protobuf.decode(transfer.name, transfer.body)
+		local proto_name = string.sub(transfer.name, 7)
+		skynet.error("--收到协议--->", proto_name, V2S(body))
+
+		if gate_type == "login" then
+			return skynet.tostring(skynet.rawcall(".logind", "lua", skynet.pack(proto_name, body, fd)))
+		elseif gate_type == "game" then
+			if proto_name == "cs_player_enter" then
+				user_fd[fd] = skynet.call(".agentmgr", "lua", "launcher_agent", body.account_id, fd)
+			end
+			if not user_fd[fd] then
+				D("玩家未登陆登陆服，不能进入游戏服")
+				return
+			end
+			skynet.send(user_fd[fd], "lua", proto_name, body)
+			-- return skynet.tostring(skynet.rawcall(user_fd[fd], "lua", skynet.pack(proto_name, msg, fd)))
+		end
+
 	else
 		skynet.error("--协议解析失败-->", fd, #message)
 	end
@@ -124,7 +140,7 @@ function CMD.open(conf)
 	local port = assert(conf.port)
 	maxclient = conf.maxclient or 1024
 	nodelay = conf.nodelay
-	gate_name = conf.server_name
+	gate_type = conf.gate_type
 	skynet.error(string.format("gate listen on %s:%d, from server:%s", address, port, gate_name))
 	socket = socketdriver.listen(address, port)
 	socketdriver.start(socket)
@@ -141,7 +157,7 @@ local function send_package(fd, pack)
 	socketdriver.send(fd, package)
 end
 
-function CMD.send_socket(fd, name, proto)
+function CMD.send_proto(fd, name, proto)
 	local proto_name = "proto."..name
 	skynet.error(">>>",fd, proto_name, V2S(proto))
     local str = protobuf.encode(proto_name, proto)

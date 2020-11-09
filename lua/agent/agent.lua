@@ -1,55 +1,42 @@
+require "common"
 local skynet = require "skynet"
+local socket_fd = ...
+local err_cfg = {}
+ProtoList = ProtoList or {}
 
-local gate
-local userid, subid
-
-local CMD = {}
-
-function CMD.login(source, uid, sid, secret)
-	-- you may use secret to make a encrypted data stream
-	skynet.error(string.format("%s is login", uid))
-	gate = source
-	userid = uid
-	subid = sid
-	-- you may load user data from database
+function Accept.send_client_proto(proto, body)
+	skynet.send(".game_gated", "lua", "send_proto", socket_fd, proto, body)
 end
 
-local function logout()
-	if gate then
-		skynet.call(gate, "lua", "logout", userid, subid)
-		gate = nil
-	end
-	skynet.exit()
+function Accept.send_err(name, code, msg, session)
+	local cfg = err_cfg[code] or {}
+	Accept.send_client_proto("sc_err", {proto_name = name, code = cfg.id or 0, content = msg, session = session})
 end
-
-function CMD.logout(source)
-	-- NOTICE: The logout MAY be reentry
-	skynet.error(string.format("%s is logout", userid))
-	logout()
-end
-
-function CMD.afk(source)
-	-- the connection is broken, but the user may back
-	skynet.error(string.format("AFK"))
-end
-
-skynet.register_protocol {
-	name = "client",
-	id = skynet.PTYPE_CLIENT,
-	unpack = skynet.tostring,
-}
 
 skynet.start(function()
-	-- If you want to fork a work thread , you MUST do it in CMD.login
-	skynet.dispatch("lua", function(session, source, command, ...)
-		local f = assert(CMD[command])
-		skynet.ret(skynet.pack(f(source, ...)))
-	end)
-
-	skynet.dispatch("client", function(_,_, msg)
-		-- the simple echo service
-		skynet.sleep(10)	-- sleep a while
-		skynet.error("------agent-->>", msg)
-		skynet.ret(msg)
+	skynet.dispatch("lua", function(session, source, _type, command, ...)
+		if _type == "proto" then
+			local func = ProtoList[command]
+			if func then
+				local ok, err, succ, code = pcall(func, ...)
+				if not ok then
+					skynet.error(string.format("call proto %s fail, parm: ",command, V2S({...})), err)
+				end
+				
+				if type(succ) == "false" then
+					Accept.send_err("sc_err", code)
+				elseif type(succ) == "true" then
+					Accept.send_err("sc_err", 0)
+				end
+			else
+				skynet.error(string.format("call proto %s fail, proto function not found", command))
+			end
+		else
+			if Accept[command] then
+				pcall(Accept[command], ...)
+			elseif Response[command] then
+				skynet.ret(skynet.pack(Response[command](command, ...)))
+			end
+		end
 	end)
 end)
