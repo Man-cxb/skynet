@@ -1,152 +1,130 @@
-package.cpath = "skynet/luaclib/?.so"
-
-local socket = require "client.socket"
-local crypt = require "client.crypt"
+package.cpath = "skynet/luaclib/?.so;clib/?.so"
+package.path = "lua/?.lua;lua/lib/?.lua;skynet/lualib/?.lua"
 
 if _VERSION ~= "Lua 5.3" then
 	error "Use lua 5.3"
 end
 
-local token = {
-	server = "sample",
-	user = "hello",
-	pass = "password",
-}
+require "tool"
+local socket = require "client.socket"
+local protobuf = require "protobuf"
+local parser = require "parser"
+local misc = require "misc"
+
+local fd_list = {}
+
+local function register_proto()
+    local path = "./proto"
+    local map = misc.list_dir(path)
+    for filename in pairs(map or {}) do
+        local r = parser.register(filename, path)
+        print("register_proto:", filename)
+    end
+end
+
+-- 注册协议
+register_proto()
+
+-- 连接登陆服
+local login_fd = assert(socket.connect("127.0.0.1", 8001))
+
+fd_list[login_fd] = {last = ""}
 
 local function unpack_package(text)
 	local size = #text
 	if size < 2 then
 		return nil, text
 	end
-	local s = text:byte(1) * 256 + text:byte(2)
-	if size < s+2 then
+	local s = text:byte(1) * 256 + text:byte(2) -- 包头2字节包大小
+	if size < s+2 then	-- 包长度小于包头标示的大小
 		return nil, text
 	end
+
 	return text:sub(3,2+s), text:sub(3+s)
 end
 
-local function unpack_line(text)
-	local from = text:find("\n", 1, true)
-    if from then
-		return text:sub(1, from-1), text:sub(from+1)
+local function recv_package(fd, last)
+	local result
+	result, last = unpack_package(last)
+	if result then
+		return result, last
 	end
-	return nil, text
-end
-
-local function send_socket(fd, text)
-    print("send_socket: ", fd, text)
-    socket.send(fd, text)
-end
-
-local function read_socket(fd, unpack_func)
-    while true do
-        local r = socket.recv(fd)
-        if r then
-            if r == "" then
-                error "Server closed"
-            end
-            local s = unpack_func(r)
-            print("read_socket:", s)
-            return s
-        end
-        socket.usleep(100)
+    local r = socket.recv(fd)
+	if not r then
+		return nil, last
+	end
+	if r == "" then
+		return nil, "closed"
     end
+	return unpack_package(last .. r)
 end
 
-local function encode_token(token)
-	return string.format("%s@%s:%s",
-		crypt.base64encode(token.user),
-		crypt.base64encode(token.server),
-		crypt.base64encode(token.pass))
+local function send_package(fd, pack)
+    local package = string.pack(">s2", pack)
+    print("发包长度:",#package, #pack )
+	socket.send(fd, package)
 end
 
-local function send_request(fd, v, session)
-	local size = #v + 4
-	local msg = string.pack(">I2", size)..v..string.pack(">I4", session)
-    send_socket(fd, msg)
-	return v, session
+local function send_request(fd, name, args)
+    print("send_request：", fd, name, V2S(args))
+	local str = protobuf.encode(name, args)
+    local msg = { name = name, body = str}
+    local encodemsg = protobuf.encode("proto.transfer", msg)
+	send_package(fd, encodemsg)
+
+	--print(name, V2S(args))
 end
 
-local function recv_response(v)
-	local size = #v - 5
-	local content, ok, session = string.unpack("c"..tostring(size).."B>I4", v)
-	return ok ~=0 , content, session
+
+local PlayerProto = {}
+function PlayerProto:sc_login_vistor_info(fd)
+    print("到这里来来")
 end
 
-----------------------------------------------------
--- 连接登陆服
-local fd = assert(socket.connect("127.0.0.1", 8001))
-print("connect 8001 fd ", fd)
+function PlayerProto:sc_err(fd)
+end
 
--- 获得服务端端验证码
-local challenge = crypt.base64decode(read_socket(fd, unpack_line))
+function PlayerProto:default(fd, name, parm)
+    print("找不到解析函数",name)
+end
 
--- 创建客户端key，并发送给服务端
-local clientkey = crypt.randomkey()
-send_socket(fd, crypt.base64encode(crypt.dhexchange(clientkey)) .. "\n")
+local function dispatch_package(fd)
+	while true do
+		local v
+		v, fd_list[fd].last = recv_package(fd, fd_list[fd].last)
+        if not v then
+			return fd_list[fd].last
+		end
 
--- 收到服务端key，和客户端key算出密钥
-local secret = crypt.dhsecret(crypt.base64decode(read_socket(fd, unpack_line)), clientkey)
-print("sceret is ", crypt.hexencode(secret))
+		local transfer = protobuf.decode("proto.transfer", v)
+        local msg = protobuf.decode(transfer.name, transfer.body)
+        local proto_name = string.sub(transfer.name, 7)
+        print("客户端收到协议：", proto_name, V2S(msg))
+        local func = PlayerProto[proto_name]
+        if func then
+            func(msg, fd)
+        else
+            -- PlayerProto.default(msg, fd, transfer.name)
+        end
+	end
+end
 
--- 使用 服务端验证码 + 算出的密钥 创建hmac，并发送给服务端
-local hmac = crypt.hmac64(challenge, secret)
-send_socket(fd, crypt.base64encode(hmac) .. "\n")
+send_request(login_fd, "proto.cs_login_verify", {type = 0})
 
--- 使用协商成功的密钥加密账号密码发送给服务端
-local etoken = crypt.desencode(secret, encode_token(token))
-send_socket(fd, crypt.base64encode(etoken) .. "\n")
-
-local result = read_socket(fd, unpack_line)
-print("登陆结果：", result)
-
-local code = tonumber(string.sub(result, 1, 3))
-assert(code == 200)
--- 关闭登陆服的fd
-socket.close(fd)
-
-local subid = crypt.base64decode(string.sub(result, 5))
-
-print("login ok, subid=", subid)
-
--- 开始连接游戏服
-local text = "echo"
-local index = 1
-
-fd = assert(socket.connect("127.0.0.1", 8888))
-print("connect 8888 fd ", fd)
-
--- 加密账户信息，发送到服务端
-local handshake = string.format("%s@%s#%s:%d", crypt.base64encode(token.user), crypt.base64encode(token.server),crypt.base64encode(subid) , index)
-local hmac = crypt.hmac64(crypt.hashkey(handshake), secret)
-local package = string.pack(">s2", handshake .. ":" .. crypt.base64encode(hmac))
-send_socket(fd, package)
-
-print("===>",send_request(fd, text, 0))
--- don't recv response
--- print("<===",recv_response(read_socket(fd, unpack_package)))
-
-print("disconnect")
-socket.close(fd)
-
-index = index + 1
-
-print("connect again")
-fd = assert(socket.connect("127.0.0.1", 8888))
-
-local handshake = string.format("%s@%s#%s:%d", crypt.base64encode(token.user), crypt.base64encode(token.server),crypt.base64encode(subid) , index)
-local hmac = crypt.hmac64(crypt.hashkey(handshake), secret)
-
-local package = string.pack(">s2", handshake .. ":" .. crypt.base64encode(hmac))
-send_socket(fd, package)
-
-print(read_socket(fd, unpack_package))
-print("===>",send_request(fd, "fake", 0))	-- request again (use last session 0, so the request message is fake)
-print("===>",send_request(fd, "again", 1))	-- request again (use new session)
-print("<===",recv_response(read_socket(fd, unpack_package)))
-print("<===",recv_response(read_socket(fd, unpack_package)))
-
-
-print("disconnect")
--- socket.close(fd)
-
+while true do
+    if login_fd then
+	   if dispatch_package(login_fd) == "closed" then
+            fd_list[login_fd] = nil
+            login_fd = nil
+            print("login closed!")
+        end
+    end
+    -- if game_fd then
+    --     dispatch_package(game_fd)
+    --     send_request(game_fd, "cs_ping", {client_time = os.time()})
+    -- end
+    -- if login_fd then
+    --     send_request(login_fd, "cs_ping", {client_time = os.time()})
+    -- end
+    socket.usleep(1000000)
+end

@@ -40,7 +40,7 @@ function Accept.login(player_id)
 end
 
 function Accept.send_client_proto(fd, name, msg)
-	skynet.send(".login_gated", "lua", "send_proto", fd, name, msg)
+	skynet.send(Login_gate, "lua", "send_proto", fd, name, msg)
 end
 
 function Accept.send_err(name, code, msg, session)
@@ -49,33 +49,16 @@ function Accept.send_err(name, code, msg, session)
 end
 
 skynet.start(function()
-	skynet.dispatch("lua", function(_, source, proto_name, parm, fd, ...)
-		skynet.error("登陆服收到协议：", proto_name, V2S(parm), fd)
-		local func = LoginProto[proto_name]
-		if func then
-			local ok, err, succ, code = pcall(func, parm, fd)
-			if not ok then
-				skynet.error(string.format("call funciton %s fail, parm: ",proto_name, V2S(parm)), err)
-			end
-			
-			if type(succ) == "false" then
-			elseif type(succ) == "true" then
-			end
-		else
-			skynet.error(string.format("call funciton %s fail, parm: ",proto_name, V2S(parm)))
-		end
-		-- skynet.error("----------login dispatch lua",V2S(command))
-		-- local f = assert(CMD[command])
-		-- local msg, sz = skynet.pack(f(...))
-		-- skynet.ret(msg, sz)
-	end)
+	skynet.dispatch("lua", Dispatch(LoginProto))
 
 	skynet.register ".logind"
+
 	-- 注册协议
 	register_proto()
 
-
-	skynet.call(".login_gated", "lua", "open" , {
+	-- 启动网关服务
+	Login_gate = skynet.newservice "gated"
+	skynet.call(Login_gate, "lua", "open" , {
 		port = 8001,
 		maxclient = 64,
 		gate_type = "login"

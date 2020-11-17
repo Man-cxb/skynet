@@ -25,16 +25,17 @@ local function do_request(fd, message)
 		skynet.error("--收到协议--->", proto_name, V2S(body))
 
 		if gate_type == "login" then
-			return skynet.tostring(skynet.rawcall(".logind", "lua", skynet.pack(proto_name, body, fd)))
+			Snx.dispatch_proto(".logind", proto_name, body, fd)
+			-- return skynet.tostring(skynet.rawcall(".logind", "lua", skynet.pack(proto_name, body, fd)))
 		elseif gate_type == "game" then
 			if proto_name == "cs_player_enter" then
-				user_fd[fd] = skynet.call(".agentmgr", "lua", "launcher_agent", body.account_id, fd)
+				user_fd[fd] = Snx.call(".agentmgr", "launcher_agent", body.account_id, fd)
 			end
 			if not user_fd[fd] then
 				D("玩家未登陆登陆服，不能进入游戏服")
 				return
 			end
-			skynet.send(user_fd[fd], "lua", proto_name, body)
+			Snx.dispatch_proto(user_fd[fd], proto_name, body, fd)
 			-- return skynet.tostring(skynet.rawcall(user_fd[fd], "lua", skynet.pack(proto_name, msg, fd)))
 		end
 

@@ -14,29 +14,5 @@ function Accept.send_err(name, code, msg, session)
 end
 
 skynet.start(function()
-	skynet.dispatch("lua", function(session, source, _type, command, ...)
-		if _type == "proto" then
-			local func = ProtoList[command]
-			if func then
-				local ok, err, succ, code = pcall(func, ...)
-				if not ok then
-					skynet.error(string.format("call proto %s fail, parm: ",command, V2S({...})), err)
-				end
-				
-				if type(succ) == "false" then
-					Accept.send_err("sc_err", code)
-				elseif type(succ) == "true" then
-					Accept.send_err("sc_err", 0)
-				end
-			else
-				skynet.error(string.format("call proto %s fail, proto function not found", command))
-			end
-		else
-			if Accept[command] then
-				pcall(Accept[command], ...)
-			elseif Response[command] then
-				skynet.ret(skynet.pack(Response[command](command, ...)))
-			end
-		end
-	end)
+	skynet.dispatch("lua", Dispatch(ProtoList))
 end)
