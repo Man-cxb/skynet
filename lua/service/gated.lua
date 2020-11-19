@@ -1,12 +1,13 @@
-require ""
 require "skynet.manager"
+require "common"
+require "tool"
 local skynet = require "skynet"
 local netpack = require "skynet.netpack"
 local socketdriver = require "skynet.socketdriver"
 local protobuf = require "protobuf"
 local parser = require "parser"
 local misc = require "misc"
-require "tool"
+local snax = require "skynet.snax"
 
 local user_fd = {}
 local client_number = 0 -- 客户端连接数量
@@ -14,7 +15,9 @@ local queue		-- message queue
 local maxclient	-- max client
 local nodelay = false
 local socket	-- listen socket
-local gate_type
+local gate_type = ... -- 网关类型
+local agent_handle = {}
+
 
 -- 协议请求
 local function do_request(fd, message)
@@ -22,25 +25,30 @@ local function do_request(fd, message)
 	if transfer then
 		local body = protobuf.decode(transfer.name, transfer.body)
 		local proto_name = string.sub(transfer.name, 7)
-		skynet.error("--收到协议--->", proto_name, V2S(body))
+		skynet.error("gated accept proto:", proto_name, Tbtostr(body))
 
-		if gate_type == "login" then
-			Snx.dispatch_proto(".logind", proto_name, body, fd)
-			-- return skynet.tostring(skynet.rawcall(".logind", "lua", skynet.pack(proto_name, body, fd)))
-		elseif gate_type == "game" then
+		if gate_type == ".login_gated" then
+			skynet.send(".logind", "snax", 5, proto_name, body, fd)
+			-- Snx.dispatch_proto(".logind", proto_name, body, fd)
+
+		elseif gate_type == ".game_gated" then
 			if proto_name == "cs_player_enter" then
-				user_fd[fd] = Snx.call(".agentmgr", "launcher_agent", body.account_id, fd)
+				local msg = skynet.call(".agentmgr", "snax", 6, body.account_id, fd)
+				agent_handle[fd] = msg.handle
+				-- agent_handle[fd] = Snx.call(".agentmgr", "launcher_agent", body.account_id, fd)
 			end
-			if not user_fd[fd] then
-				D("玩家未登陆登陆服，不能进入游戏服")
+
+			if agent_handle[fd] then
+				skynet.send(agent_handle[fd], "snax", 5, proto_name, body, fd)
+				-- Snx.dispatch_proto(agent_handle[fd], proto_name, body, fd)
+			else
+				D("玩家未在登陆服登陆，不能进入游戏服")
 				return
 			end
-			Snx.dispatch_proto(user_fd[fd], proto_name, body, fd)
-			-- return skynet.tostring(skynet.rawcall(user_fd[fd], "lua", skynet.pack(proto_name, msg, fd)))
-		end
 
+		end
 	else
-		skynet.error("--协议解析失败-->", fd, #message)
+		skynet.error("gated proto ", fd, #message)
 	end
 end
 
@@ -50,7 +58,7 @@ local function dispatch_msg(fd, msg, sz)
 		local message = netpack.tostring(msg, sz)
 		local ok, err = pcall(do_request, fd, message)
 		if not ok then
-			skynet.error(string.format("Invalid package %s : %s", err, message))
+			skynet.error(string.format("Invalid package %s ", err))
 			user_fd[fd] = nil
 			socketdriver.close(fd)
 		end
@@ -127,8 +135,8 @@ skynet.register_protocol {
 	dispatch = function (_, _, q, _type, ...)
 		queue = q
 		if _type then
-			local fd,msg,sz = ...
-			skynet.error(string.format("socket->: _type: %s, fd: %s, msg: %s, sz: %s",_type,fd,msg,sz))
+			local fd, msg, sz = ...
+			skynet.error(string.format("gated socket msg: _type: %s, socket_fd: %s, msg: %s, sz: %s", _type, fd, msg, sz))
 			SOCKET_MSG[_type](...)
 		end
 	end
@@ -141,8 +149,7 @@ function CMD.open(conf)
 	local port = assert(conf.port)
 	maxclient = conf.maxclient or 1024
 	nodelay = conf.nodelay
-	gate_type = conf.gate_type
-	skynet.error(string.format("gate listen on %s:%d, from server:%s", address, port, gate_name))
+	skynet.error(string.format("gate listen on %s:%d, from server:%s", address, port, gate_type))
 	socket = socketdriver.listen(address, port)
 	socketdriver.start(socket)
 end
@@ -154,13 +161,12 @@ end
 
 local function send_package(fd, pack)
 	local package = string.pack(">s2", pack)
-	skynet.error("服务端发包", fd, #package)
 	socketdriver.send(fd, package)
 end
 
 function CMD.send_proto(fd, name, proto)
-	local proto_name = "proto."..name
-	skynet.error(">>>",fd, proto_name, V2S(proto))
+	local proto_name = "proto." .. name
+	skynet.error("gated send proto:",fd, proto_name, Tbtostr(proto))
     local str = protobuf.encode(proto_name, proto)
     local transfer = { name = proto_name, body = str, session = proto.session}
 	local sendmsg = protobuf.encode("proto.transfer", transfer)
@@ -171,22 +177,22 @@ local function register_proto()
     local path = "./proto"
     local map = misc.list_dir(path)
     for filename in pairs(map or {}) do
-        local r = parser.register(filename, path)
-        print("register_proto:", filename)
+        parser.register(filename, path)
     end
 end
 
 skynet.start(function()
 	skynet.dispatch("lua", function (_, address, cmd, ...)
-		local f = CMD[cmd]
-		skynet.error("--->>",cmd, ...)
-		if f then
-			skynet.ret(skynet.pack(f(...)))
+		skynet.error(string.format("gate dispatch lua: type: %s, param: %s", cmd, Tbtostr({...})))
+		local func = CMD[cmd]
+		if func then
+			skynet.ret(skynet.pack(func(...)))
 		else
 			skynet.error("cmd not found:", cmd)
 		end
 	end)
 
 	register_proto()
-	-- skynet.register ".login_gated"
+
+	skynet.register(gate_type)
 end)

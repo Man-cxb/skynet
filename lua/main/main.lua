@@ -1,5 +1,6 @@
 local skynet = require "skynet"
 local harbor = require "skynet.harbor"
+local snax = require "skynet.snax"
 require "skynet.manager"	-- import skynet.launch, ...
 
 function Init()
@@ -13,22 +14,20 @@ function Init()
         skynet.abort()
     end
     skynet.name(".cslave", slave)
-
-	-- 启动logind 开始监听端口8001
-	skynet.newservice "logind"
     
-    -- 启动游戏服网关
-	local game_gate = skynet.newservice "gated"
-	skynet.name(".game_gated", game_gate)
+	-- 启动logind 开始监听端口8001
+    snax.newservice("logind", ".logind")
+    
+    -- -- 启动游戏服网关
+	local game_gate = skynet.newservice("gated", ".game_gated")
 	skynet.call(game_gate, "lua", "open" , {
         port = 8888,
-		maxclient = 64,
-		gate_type = "game"
+		maxclient = 64
     })
-    
-    skynet.newservice "agentmgr"
 
-	-- skynet.newservice("dbmgr")
+    snax.newservice("agentmgr", ".agentmgr")
+
+	-- -- skynet.newservice("dbmgr")
 
 	skynet.newservice("debug_console", 8000)
 end

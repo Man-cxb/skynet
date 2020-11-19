@@ -71,14 +71,22 @@ local function send_request(fd, name, args)
     local msg = { name = name, body = str}
     local encodemsg = protobuf.encode("proto.transfer", msg)
 	send_package(fd, encodemsg)
-
-	--print(name, V2S(args))
 end
 
+local account = {}
 
 local PlayerProto = {}
 function PlayerProto:sc_login_vistor_info(fd)
-    print("到这里来来")
+    account = self
+    print("账号信息:", Tbtostr(self))
+end
+
+function PlayerProto:sc_login_server_info(fd)
+    print("登陆服信息:", Tbtostr(self))
+
+    game_fd = assert(socket.connect(self.domain, self.port))
+
+    send_request(game_fd, "proto.cs_player_enter", {account_id = self.account_id, login_key = self.login_key})
 end
 
 function PlayerProto:sc_err(fd)

@@ -30,7 +30,7 @@ function V2S(val, max_dep, cur_dep, sp)
     return s .. "\n" .. sp .. "}"
 end
 
-function Tbtostr(val,  sp, cache)
+function Tbtostr(val, cache)
     cache = cache or {}
     local t = type(val)
     if t == "string" then
@@ -51,15 +51,17 @@ function Tbtostr(val,  sp, cache)
         return "{}"
     end
     pcall(table.sort, keys)
-    sp = sp or ""
-    local nsp = sp .. "\t"
+    local len = #keys
     local s = "{"
-	for _, k in ipairs(keys) do
+	for i, k in ipairs(keys) do
 		if type(k) == "string" then
-			s = s .. string.format("\n%s%s = %s,", nsp, k, val_to_str(val[k], nsp, cache))
+			s = s .. string.format("%s = %s", k, Tbtostr(val[k], cache))
 		else
-			s = s .. string.format("\n%s[%s] = %s,", nsp, k, val_to_str(val[k], nsp, cache))
-		end
+			s = s .. string.format("%s",  Tbtostr(val[k], cache))
+        end
+        if i ~= len then
+            s = s .. ", "
+        end
     end
-    return s .. "\t\n" .. sp .. "}"
+    return s ..  "}"
 end

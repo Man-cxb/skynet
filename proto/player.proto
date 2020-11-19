@@ -18,9 +18,8 @@ message cs_player_enter
 {
 	required int64   account_id 	= 1;  	// 帐户ID
 	required string  login_key  	= 2;  	// 登录KEY
-	required device_info device 	= 3;	// 设备信息
-	optional int32   is_reconnect   = 4;    // 有值是重连， 不填不是重连
-	required int32   hero_id        = 5;    // 英雄ID    
+	optional int32   is_reconnect   = 3;    // 有值是重连， 不填不是重连 
+	//required device_info device 	= 4;	// 设备信息
 } 
 
 // 道具

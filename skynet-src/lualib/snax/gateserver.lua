@@ -144,7 +144,6 @@ function gateserver.start(handler)
 	skynet.start(function()
 		skynet.dispatch("lua", function (_, address, cmd, ...)
 			local f = CMD[cmd]
-			print("--->>cmd:",cmd)
 			if f then
 				skynet.ret(skynet.pack(f(address, ...)))
 			else
