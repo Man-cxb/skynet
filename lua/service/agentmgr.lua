@@ -1,4 +1,4 @@
-require "common"
+require "tool"
 require "skynet.manager"
 local skynet = require "skynet"
 local snax = require "skynet.snax"
@@ -21,6 +21,14 @@ function response.launcher_agent(player_id, socket_fd)
 	AgentFd[handle] = player_id
 	AgentPlayerId[player_id] = handle
 	return handle
+end
+
+function response.test_from_agent(...)
+	D("-------test_from_agent-----response---->>", V2S({...}))
+	return true
+end
+function accept.test_from_agent(...)
+	D("-------test_from_agent-----accept---->>", V2S({...}))
 end
 
 function init(server_name)

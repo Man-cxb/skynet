@@ -1,4 +1,4 @@
-require "common"
+require "tool"
 local skynet = require "skynet"
 local snax = require "skynet.snax"
 
@@ -6,6 +6,7 @@ local socket_fd
 local err_cfg = {}
 
 g_player_id = g_player_id
+gateway = gateway
 
 function init(socket_fd, gateway)
 	D("agent start")
@@ -40,20 +41,18 @@ function dispatch_proto(proto, name)
          accept.send_err(name, 0, "玩家未登录", proto.session)
          return
 	end
-	-- post
     -- Snx.post(handle, "player_msg", g_player_id, name, proto)
 end
 
 local function get_proto_func(proto_name)
-    local last = proto_name:sub(4):find("_") -- sc_player_select_weapon
+    local last = proto_name:sub(4):find("_")
     if last then
         last = last + 2
     else
         last = #proto_name
     end
 
-    local module_name = proto_name:sub(4, last) -- module_name = "player"
-
+    local module_name = proto_name:sub(4, last)
     local tbl = proto_cb[module_name]
     if tbl then
         return tbl[proto_name] or tbl.default, module_name
@@ -71,16 +70,22 @@ function accept.dispatch_proto(proto_name, body)
 
 	local ok, ret, code, msg = xpcall(func, debug.traceback, proto_name, body)
     if not ok then
-        D("error_handle", debug.traceback(ret, 2))
+		D("error_handle", debug.traceback(ret, 2))
         -- accept.send_err(name, "COM_SYS_FAIL", "协议处理失败: " .. body, proto_name.session)
         return
     end
+	local agentmgr = snax.bind(".agentmgr", "agentmgr")
+	local ok = agentmgr.post.test_from_agent("dsss")
+	D("--dd-->",ok)
+	D("--dd-->",V2S(agentmgr))
+
     if ret == false then
         -- accept.send_err(name, code, msg, proto_name.session)
         return
     elseif ret == true then
         -- accept.send_err(name, "SUCCESS", nil, proto_name.session)
 	end
+
 end
 
 function send_client_proto(name, body)

@@ -3,6 +3,7 @@ local c = require "skynet.core"
 local snax_interface = require "snax.interface"
 local profile = require "skynet.profile"
 local snax = require "skynet.snax"
+require "tool"
 
 local snax_name = tostring(...)
 local loaderpath = skynet.getenv"snax_loader"
@@ -33,6 +34,7 @@ local function return_f(f, ...)
 end
 
 local function timing( method, ... )
+	D("---->>", Tbtostr(method), " param:",Tbtostr({...}))
 	local err, msg
 	profile.start()
 	if method[2] == "accept" then
@@ -48,7 +50,7 @@ end
 
 skynet.start(function()
 	local init = false
-	local function dispatcher( session , source , id, ...)
+	local function dispatcher(session, source, id, ...)
 		local method = func[id]
 
 		if method[2] == "system" then
