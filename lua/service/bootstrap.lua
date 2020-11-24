@@ -23,7 +23,7 @@ skynet.start(function()
 		skynet.name(".cslave", slave)
 	else	-- 多节点
 		if standalone then  -- 主节点
-			if not pcall(skynet.newservice,"cmaster") then
+			if not pcall(skynet.newservice, "cmaster") then
 				skynet.abort()
 			end
 		end

@@ -15,7 +15,7 @@ local queue		-- message queue
 local maxclient	-- max client
 local nodelay = false
 local socket	-- listen socket
-local gate_type = ... -- 网关类型
+local gate_type, target_handle = ... -- 网关类型
 local agent_handle = {}
 
 
@@ -29,23 +29,22 @@ local function do_request(fd, message)
 
 		if gate_type == ".login_gated" then
 			skynet.send(".logind", "snax", 5, proto_name, body, fd)
-			-- Snx.dispatch_proto(".logind", proto_name, body, fd)
+			-- skynet.send(target_handle, "snax", 5, proto_name, body, fd)
 
 		elseif gate_type == ".game_gated" then
-			if proto_name == "cs_player_enter" then
-				local msg = skynet.call(".agentmgr", "snax", 6, body.account_id, fd)
-				agent_handle[fd] = msg.handle
-				-- agent_handle[fd] = Snx.call(".agentmgr", "launcher_agent", body.account_id, fd)
-			end
-
 			if agent_handle[fd] then
 				skynet.send(agent_handle[fd], "snax", 5, proto_name, body, fd)
-				-- Snx.dispatch_proto(agent_handle[fd], proto_name, body, fd)
 			else
-				D("玩家未在登陆服登陆，不能进入游戏服")
-				return
+				if proto_name == "cs_player_enter" then
+					local msg = skynet.call(".agentmgr", "snax", 6, body.account_id, fd)
+					-- local msg = skynet.call(target_handle, "snax", 6, body.account_id, fd)
+					assert(msg.handle)
+					agent_handle[fd] = msg.handle
+					skynet.send(msg.handle, "snax", 5, proto_name, body, fd)
+				else
+					skynet.error("玩家未在登陆服登陆，不能进入游戏服")
+				end
 			end
-
 		end
 	else
 		skynet.error("gated proto ", fd, #message)

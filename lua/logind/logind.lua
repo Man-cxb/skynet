@@ -3,7 +3,7 @@ require "skynet.manager"
 local parser = require "parser"
 local misc = require "misc"
 require "tool"
-local snax = require "skynet.snax"
+local snax = require "snax"
 
 local string = string
 local assert = assert

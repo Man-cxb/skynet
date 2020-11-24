@@ -1,7 +1,7 @@
 require "tool"
 require "skynet.manager"
 local skynet = require "skynet"
-local snax = require "skynet.snax"
+local snax = require "snax"
 
 Gate = Gate
 AgentFd = AgentFd or {}

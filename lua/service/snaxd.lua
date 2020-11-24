@@ -1,8 +1,8 @@
 local skynet = require "skynet"
 local c = require "skynet.core"
-local snax_interface = require "snax.interface"
+local snax_interface = require "interface"
 local profile = require "skynet.profile"
-local snax = require "skynet.snax"
+local snax = require "snax"
 require "tool"
 
 local snax_name = tostring(...)
@@ -34,7 +34,6 @@ local function return_f(f, ...)
 end
 
 local function timing( method, ... )
-	D("---->>", Tbtostr(method), " param:",Tbtostr({...}))
 	local err, msg
 	profile.start()
 	if method[2] == "accept" then

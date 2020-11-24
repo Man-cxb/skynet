@@ -1,6 +1,6 @@
 require "tool"
 local skynet = require "skynet"
-local snax = require "skynet.snax"
+local snax = require "snax"
 
 local socket_fd
 local err_cfg = {}
