@@ -26,14 +26,6 @@ function response.launcher_agent(player_id)
 	return obj.handle
 end
 
-function response.test_from_agent(...)
-	D("-------test_from_agent-----response---->>", V2S({...}))
-	return true
-end
-function accept.test_from_agent(...)
-	D("-------test_from_agent-----accept---->>", V2S({...}))
-end
-
 function init()
 
 end

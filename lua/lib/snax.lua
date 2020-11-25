@@ -1,6 +1,7 @@
 local skynet = require "skynet"
 local snax_interface = require "interface"
 require "tool"
+require "functions"
 require "common"
 require "gamedef"
 

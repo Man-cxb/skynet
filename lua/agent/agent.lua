@@ -7,6 +7,7 @@ local err_cfg = {}
 g_player_id = g_player_id
 gateway = gateway
 socket_fd = socket_fd
+g_player = g_player
 
 function init(player_id)
 	D("agent start")

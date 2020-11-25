@@ -13,4 +13,7 @@ function PlayerProto:cs_player_enter()
     -- 通知登陆服断开连接
     local obj = get_server_obj("logind")
     obj.post.game_login(g_player_id)
+
+    local obj = instance("player")
+    obj:test("from login")
 end
