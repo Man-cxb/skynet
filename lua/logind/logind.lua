@@ -2,17 +2,31 @@ local skynet = require "skynet"
 require "skynet.manager"
 local parser = require "parser"
 local misc = require "misc"
-require "tool"
 local snax = require "snax"
+local datacenter = require "skynet.datacenter"
 
 local string = string
 local assert = assert
 
 local server_list = {}
-local user_online = {}
+user_online = user_online or {}
 local err_cfg = {}
 Login_key = Login_key or {}
 Tourist_id = Tourist_id or {}
+Socket_fd = Socket_fd or {}
+
+local sevobj = {}
+function get_server_obj(name)
+	if sevobj[name] then
+		return sevobj[name]
+	end
+	local key = name .. "_handle"
+	local handle = datacenter.get(key)
+	assert(handle, "get_server_obj error, key " .. key)
+	local obj = snax.bind(handle, name)
+	sevobj[name] = obj
+	return obj
+end
 
 local function register_proto()
     local path = "./proto"
@@ -72,22 +86,21 @@ function accept.logout(uid, subid)
 	end
 end
 
-function accept.login(player_id)
-	local fd = skynet.call(".agentmgr", "lua", "launcher_agent", player_id)
-	user_online[player_id] = fd
+function accept.game_login(player_id)
+	local fd = Socket_fd[player_id]
+	if fd then
+		skynet.send(Login_gate, "lua", "close_fd", fd)
+	end
 end
-
-
 
 function init(server_name)
 	require "loginProto"
-	skynet.register(server_name)
 
 	-- 注册协议
 	register_proto()
 
 	-- 启动网关服务
-	Login_gate = skynet.newservice("gated", ".login_gated")
+	Login_gate = skynet.newservice("gated", "login", skynet.self())
 	skynet.call(Login_gate, "lua", "open" , {
 		port = 8001,
 		maxclient = 64

@@ -85,8 +85,13 @@ function PlayerProto:sc_login_server_info(fd)
     print("登陆服信息:", Tbtostr(self))
 
     game_fd = assert(socket.connect(self.domain, self.port))
-
+    fd_list[game_fd] = {last = ""}
+    
     send_request(game_fd, "proto.cs_player_enter", {account_id = self.account_id, login_key = self.login_key})
+end
+
+function PlayerProto:sc_player_role_data(fd)
+    print("玩家游戏数据:", Tbtostr(self))
 end
 
 function PlayerProto:sc_err(fd)
@@ -127,10 +132,10 @@ while true do
             print("login closed!")
         end
     end
-    -- if game_fd then
-    --     dispatch_package(game_fd)
-    --     send_request(game_fd, "cs_ping", {client_time = os.time()})
-    -- end
+    if game_fd then
+        dispatch_package(game_fd)
+        -- send_request(game_fd, "cs_ping", {client_time = os.time()})
+    end
     -- if login_fd then
     --     send_request(login_fd, "cs_ping", {client_time = os.time()})
     -- end

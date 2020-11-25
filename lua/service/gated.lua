@@ -18,7 +18,6 @@ local socket	-- listen socket
 local gate_type, target_handle = ... -- 网关类型
 local agent_handle = {}
 
-
 -- 协议请求
 local function do_request(fd, message)
 	local transfer = protobuf.decode("proto.transfer", message)
@@ -27,24 +26,30 @@ local function do_request(fd, message)
 		local proto_name = string.sub(transfer.name, 7)
 		skynet.error("gated accept proto:", proto_name, Tbtostr(body))
 
-		if gate_type == ".login_gated" then
-			skynet.send(".logind", "snax", 5, proto_name, body, fd)
-			-- skynet.send(target_handle, "snax", 5, proto_name, body, fd)
+		if gate_type == "login" then
+			skynet.send(target_handle, "snax", 5, proto_name, body, fd) --send logind accept.dispatch_proto
 
-		elseif gate_type == ".game_gated" then
+		elseif gate_type == "game" then
 			if agent_handle[fd] then
-				skynet.send(agent_handle[fd], "snax", 5, proto_name, body, fd)
+				skynet.send(agent_handle[fd], "snax", 5, proto_name, body, fd) --send agent accept.dispatch_proto
 			else
 				if proto_name == "cs_player_enter" then
-					local msg = skynet.call(".agentmgr", "snax", 6, body.account_id, fd)
-					-- local msg = skynet.call(target_handle, "snax", 6, body.account_id, fd)
-					assert(msg.handle)
-					agent_handle[fd] = msg.handle
-					skynet.send(msg.handle, "snax", 5, proto_name, body, fd)
+					local handle = skynet.call(target_handle, "snax", 6, body.account_id) -- call agentmgr response.get_agent_handle
+					assert(handle, "玩家未正常登陆")
+					agent_handle[fd] = handle
+					-- skynet.send(handle, "snax", 6, skynet.self(), fd) -- send agent accept.register_agent_master
+					local ok = skynet.call(handle, "snax", 6, skynet.self(), fd) -- send agent accept.register_agent_master
+					if ok then
+						skynet.send(handle, "snax", 5, proto_name, body, fd) -- send agent accept.dispatch_proto
+					else
+						D("call agent fail", handle, body.account_id)
+					end
 				else
 					skynet.error("玩家未在登陆服登陆，不能进入游戏服")
 				end
 			end
+		else
+			skynet.error("gated type error ", gate_type, target_handle)
 		end
 	else
 		skynet.error("gated proto ", fd, #message)
@@ -106,6 +111,7 @@ local function disconnect(fd)
 		skynet.error("socket close: ", fd) 
 		client_number = client_number - 1
 		user_fd[fd] = nil
+		socketdriver.close(fd)
 	end
 end
 
@@ -170,6 +176,14 @@ function CMD.send_proto(fd, name, proto)
     local transfer = { name = proto_name, body = str, session = proto.session}
 	local sendmsg = protobuf.encode("proto.transfer", transfer)
 	send_package(fd, sendmsg)
+end
+
+function CMD.close_fd(fd)
+	disconnect(fd)
+end
+
+function CMD.time_out(fd)
+	agent_handle[fd] = nil
 end
 
 local function register_proto()

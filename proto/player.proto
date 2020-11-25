@@ -36,7 +36,6 @@ message item
 		required int32  val 		= 2;  	// 属性值
 	}
 	repeated attr  attr_list		= 7;  	// 属性列表
-	optional int32  now_lq			= 8;  	// 当前灵气值
 }
 
 message bag
@@ -44,116 +43,49 @@ message bag
 	required int32  bag_id 			= 1;	// 背包ID
 	repeated item   item_list 		= 2;	// 道具列表
 }
-message weapon_info
-{
-	required int32  id 			= 1;	// 武器id
-	optional int32  now_lq   		= 2;	// 当前耐久度（灵气值）	
-}
 
 // 玩家登录信息
 message sc_player_role_data
 {
-	required int64  account_id  	= 1;  	// 帐户ID
-	optional string nick_name   	= 2;  	// 昵称
-	optional int32  avatar_id   	= 3;  	// 头像
-	optional int32  sex 			= 4;  	// 性别 1-保密 2-男 3-女
-	optional int32  exp 			= 5;  	// 经验
-	optional int32  level 			= 6;  	// 等级
-	optional int64  coin 			= 7;  	// 粮草
-	optional int64  gold 			= 8;  	// 元宝
-	optional int64  diamond			= 9;  	// 钻石
-	optional int32  name_modify_time = 10; 	// 昵称修改时间，初始为0
-	repeated item   main_bag		= 11;  	// 主背包数据
-	required uint32  server_time    = 12;   // 服务器当前时间戳
-	optional int32  sv 			    = 13;  	// 玩家耐力值
-    required int32  hero_id     = 14;   // 玩家英雄id
+	required int64  account_id  		= 1; // 帐户ID
+	optional string nick_name   		= 2; // 昵称
+	optional int32  avatar_id   		= 3; // 头像
+	optional int32  sex 				= 4; // 性别 1-保密 2-男 3-女
+	optional int32  exp 				= 5; // 经验
+	optional int32  level 				= 6; // 等级
+	optional int64  coin 				= 7; // 金币
+	optional int64  gold 				= 8; // 黄金
+	optional int64  diamond				= 9; // 钻石
+	optional int32  name_modify_time 	= 10; // 昵称修改时间，初始为0
+	repeated item   main_bag			= 11; // 主背包数据
 }
 
 // 玩家帐户信息
 message sc_player_account_info
 {
-	optional string name 			= 1;	// 帐户名
-	optional string phone_number	= 2;	// 手机号码
-	optional string id_number		= 3;	// 身份证号码
-	optional int32  binding_time 	= 4; 	// 绑定时间
+	optional string name 				= 1; // 帐户名
+	optional string phone_number		= 2; // 手机号码
+	optional string id_number			= 3; // 身份证号码
+	optional int32  binding_time 		= 4; // 绑定时间
 }
 
 // 修改玩家信息
 message cs_player_modify
 {  
-	optional string  nick_name 		= 1;  	// 昵称
-	optional int32   avatar_id 		= 2;  	// 图像
-	optional int32   sex 			= 3;  	// 性别 1-保密 2-男 3-女
+	optional string  nick_name 			= 1; // 昵称
+	optional int32   avatar_id 			= 2; // 图像
+	optional int32   sex 				= 3; // 性别 1-保密 2-男 3-女
 }
 
 // 玩家道具变化通知
 message sc_player_item_change
 {
-	repeated item  item_list		= 1;  	// 变化的道具
-	optional int32  no_tips		= 2;  	// 如果有该字段,就不弹提示
+	repeated item  item_list			= 1; // 变化的道具
+	optional int32  no_tips				= 2; // 如果有该字段,就不弹提示
 }
 
 // 使用道具
 message cs_player_item_use
 {
-	required int32 uid 				= 1;	// 道具ID
+	required int32 uid 					= 1; // 道具ID
 }
-
-//选择装备那个武器
-message cs_player_select_weapon
-{
-    required int32 weapon_uid = 1;  //武器物品的uid
-}
-message sc_player_select_weapon
-{
-    required weapon_info weapon = 1;  //装备新的武器数据
-}
-
-//元宝
-message sc_player_new_gold
-{
-    required int64 gold = 1;  //元宝
-}
-
-//请求身上武器的信息
-message cs_player_weapon_info
-{
-}
-
-//请求身上武器的信息
-message sc_player_weapon_info
-{
-    required weapon_info info       = 1; //武器信息
-}
-
-//玩家当前的经验值
-message sc_player_exp
-{
-    required uint32 exp = 1; //玩家当前的经验值
-}
-
-message hero_info
-{
-	required int32 id 				= 1;	// 英雄id
-	required int32 level 			= 2;	// 等级
-	optional int32 now_sv           = 3;    // 当前耐久度
-	repeated int32 equips           = 4;    //该英雄的装备
-	required int32 exp              = 5;    //该英雄的经验
-	//各部位强化等级
-    message fy{
-        required int32 weapon       = 1;	// 武器
-        required int32 head         = 2;	// 头盔
-        required int32 armor        = 3;    // 胸甲
-        required int32 boot         = 4;	// 鞋子
-    }
-	required fy intensify           = 6;    // 强化等级信息
-}
-
-//玩家信息
-message player_info
-{
-    required int32 player_id 	= 1;//玩家ID
-    required string  name       = 2;//名字
-    required int32   hero_id    = 3;//英雄id
-}
-

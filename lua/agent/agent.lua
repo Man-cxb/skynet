@@ -1,18 +1,30 @@
-require "tool"
 local skynet = require "skynet"
 local snax = require "snax"
+local datacenter = require "skynet.datacenter"
 
-local socket_fd
 local err_cfg = {}
 
 g_player_id = g_player_id
 gateway = gateway
+socket_fd = socket_fd
 
-function init(socket_fd, gateway)
+function init(player_id)
 	D("agent start")
-	socket_fd = socket_fd
-	gateway = gateway
-	require "include"
+    require "include"
+    g_player_id = player_id
+end
+
+local sevobj = {}
+function get_server_obj(name)
+	if sevobj[name] then
+		return sevobj[name]
+	end
+	local key = name .. "_handle"
+	local handle = datacenter.get(key)
+	assert(handle, "get_server_obj error, key " .. key)
+	local obj = snax.bind(handle, name)
+	sevobj[name] = obj
+	return obj
 end
 
 local proto_cb = {}
@@ -74,10 +86,10 @@ function accept.dispatch_proto(proto_name, body)
         -- accept.send_err(name, "COM_SYS_FAIL", "协议处理失败: " .. body, proto_name.session)
         return
     end
-	local agentmgr = snax.bind(".agentmgr", "agentmgr")
-	local ok = agentmgr.post.test_from_agent("dsss")
-	D("--dd-->",ok)
-	D("--dd-->",V2S(agentmgr))
+	-- local agentmgr = snax.bind(".agentmgr", "agentmgr")
+	-- local ok = agentmgr.post.test_from_agent("dsss")
+	-- D("--dd-->",ok)
+	-- D("--dd-->",V2S(agentmgr))
 
     if ret == false then
         -- accept.send_err(name, code, msg, proto_name.session)
@@ -85,7 +97,12 @@ function accept.dispatch_proto(proto_name, body)
     elseif ret == true then
         -- accept.send_err(name, "SUCCESS", nil, proto_name.session)
 	end
+end
 
+function response.register_agent_master(gateway_handle, fd)
+    gateway = gateway_handle
+    socket_fd = fd
+    return true
 end
 
 function send_client_proto(name, body)

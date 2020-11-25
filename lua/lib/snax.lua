@@ -1,5 +1,8 @@
 local skynet = require "skynet"
 local snax_interface = require "interface"
+require "tool"
+require "common"
+require "gamedef"
 
 local snax = {}
 local typeclass = {}

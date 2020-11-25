@@ -7,6 +7,11 @@ end
 
 function LoginProto:cs_login_verify(fd)
 	local account = create_tourist()
+	local obj = get_server_obj("agentmgr")
+	local agent_handle = obj.req.launcher_agent(account.account_id)
+	user_online[account.account_id] = agent_handle
+	Socket_fd[account.account_id] = fd
+	
 	send_client_proto(fd, "sc_login_vistor_info", {name = account.name, passwd = account.passwd})
 	send_client_proto(fd, "sc_login_server_info", {account_id = account.account_id, login_key = account.login_key, domain = "127.0.0.1", port = 8888})
 end
