@@ -15,6 +15,10 @@ function init(player_id)
     g_player_id = player_id
 end
 
+function exit(...)
+
+end
+
 local sevobj = {}
 function get_server_obj(name)
 	if sevobj[name] then
@@ -115,6 +119,6 @@ function accept.send_err(name, code, msg, session)
 	skynet.send(".game_gated", "lua", "send_proto", socket_fd, "sc_err", {proto_name = name, code = cfg.id or 0, content = msg, session = session})
 end
 
-function exit(...)
-
+function hotfix(...)
+	D("agent hotfix ", ...)
 end

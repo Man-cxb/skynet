@@ -1,8 +1,13 @@
+package.path = "lua/main/?.lua;" .. package.path
+
 local skynet = require "skynet"
 local harbor = require "skynet.harbor"
 local snax = require "skynet.snax"
 require "skynet.manager"	-- import skynet.launch, ...
 local datacenter = require "skynet.datacenter"
+require "tool"
+require "hotfix"
+require "config"
 
 skynet.start(function()
     	-- 启动logind 开始监听端口8001
@@ -23,4 +28,15 @@ skynet.start(function()
         -- -- skynet.newservice("dbmgr")
     
         skynet.newservice("debug_console", 8000)
+
+        init_cfg()
+
+        -- print("cfg sdk:",V2S(Getcfg("sdk")))
+        -- print("cfg system.game:",V2S(sharetable.query("system.game")))
+        -- print("cfg system.service:",V2S(sharetable.query("system.service")))
+        -- for handle, _ in pairs(all_snx) do
+        --     send_snx(handle, "hotfix_cfgs", cfg_def)
+        -- end
+        -- system.hotfix_cfgs(cfg_def)
+
 end)

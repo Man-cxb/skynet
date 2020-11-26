@@ -26,6 +26,10 @@ function response.launcher_agent(player_id)
 	return obj.handle
 end
 
+function hotfix(...)
+	D("agentmgr hotfix ", ...)
+end
+
 function init()
 
 end

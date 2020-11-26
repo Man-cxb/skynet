@@ -1,9 +1,8 @@
 local skynet = require "skynet"
 require "skynet.manager"
-local parser = require "parser"
-local misc = require "misc"
 local snax = require "snax"
 local datacenter = require "skynet.datacenter"
+require "config"
 
 local string = string
 local assert = assert
@@ -28,13 +27,13 @@ function get_server_obj(name)
 	return obj
 end
 
-local function register_proto()
-    local path = "./proto"
-    local map = misc.list_dir(path)
-    for filename in pairs(map or {}) do
-       parser.register(filename, path)
-    end
-end
+-- local function register_proto()
+--     local path = "./proto"
+--     local map = misc.list_dir(path)
+--     for filename in pairs(map or {}) do
+--        parser.register(filename, path)
+--     end
+-- end
 
 function send_client_proto(fd, name, body)
 	skynet.send(Login_gate, "lua", "send_proto", fd, name, body)
@@ -91,6 +90,10 @@ function accept.game_login(player_id)
 	if fd then
 		skynet.send(Login_gate, "lua", "close_fd", fd)
 	end
+end
+
+function hotfix(...)
+	D("login hotfix ", ...)
 end
 
 function init(server_name)

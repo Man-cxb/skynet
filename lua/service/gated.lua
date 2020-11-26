@@ -5,9 +5,8 @@ local skynet = require "skynet"
 local netpack = require "skynet.netpack"
 local socketdriver = require "skynet.socketdriver"
 local protobuf = require "protobuf"
-local parser = require "parser"
-local misc = require "misc"
 local snax = require "skynet.snax"
+require "config"
 
 local user_fd = {}
 local client_number = 0 -- 客户端连接数量
@@ -184,14 +183,6 @@ end
 
 function CMD.time_out(fd)
 	agent_handle[fd] = nil
-end
-
-local function register_proto()
-    local path = "./proto"
-    local map = misc.list_dir(path)
-    for filename in pairs(map or {}) do
-        parser.register(filename, path)
-    end
 end
 
 skynet.start(function()

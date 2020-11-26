@@ -1,3 +1,5 @@
+local misc = require "misc"
+
 function V2S(val, max_dep, cur_dep, sp)
     max_dep = max_dep or 20
     cur_dep = cur_dep or 1
@@ -62,4 +64,30 @@ function Tbtostr(val, cache)
         end
     end
     return s ..  "}"
+end
+
+function list_files(dir)
+    local base
+    if not dir or dir == "" then
+        dir = "./"
+        base = ""
+    elseif dir:sub(-1) == "/" then
+        base = dir
+    else
+        base = dir .. "/"
+    end
+    local map = misc.list_dir(dir)
+    if not map then
+        return nil
+    end
+    local list = {}
+    for name, typ in pairs(map) do
+        local fullname = base .. name
+        local info = misc.stat_file(fullname) or {}
+        info.name = name
+        info.fullname = fullname
+        info.type = typ
+        table.insert(list, info)
+    end
+    return list
 end
