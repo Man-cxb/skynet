@@ -58,10 +58,16 @@ end
 local function docmd(cmdline, print, fd)
 	local split = split_cmdline(cmdline)
 	local command = split[1]
+	if not command then
+		return
+	end
+	if command == "q" then
+		return true
+	end
 	local cmd = COMMAND[command]
 	local ok, list
 	if cmd then
-		ok, list = pcall(cmd, table.unpack(split,2))
+		ok, list = pcall(cmd, table.unpack(split, 2))
 	else
 		cmd = COMMANDX[command]
 		if cmd then
@@ -81,15 +87,13 @@ local function docmd(cmdline, print, fd)
 				dump_list(print, list)
 			end
 		end
-		print("<CMD OK>")
 	else
-		print(list)
-		print("<CMD Error>")
+		print("error:", list)
 	end
 end
 
 local function console_main_loop(stdin, print)
-	print("Welcome to skynet console")
+	print(COMMAND.help())
 	skynet.error(stdin, "connected")
 	local ok, err = pcall(function()
 		while true do
@@ -105,13 +109,17 @@ local function console_main_loop(stdin, print)
 				break
 			end
 			if cmdline ~= "" then
-				docmd(cmdline, print, stdin)
+				local exit = docmd(cmdline, print, stdin)
+				if exit then
+					return
+				end
 			end
 		end
 	end)
 	if not ok then
 		skynet.error(stdin, err)
 	end
+
 	skynet.error(stdin, "disconnected")
 	socket.close(stdin)
 end
@@ -134,36 +142,40 @@ skynet.start(function()
 end)
 
 function COMMAND.help()
-	return {
-		help = "This help message",
-		list = "List all the service",
-		stat = "Dump all stats",
-		info = "info address : get service infomation",
-		exit = "exit address : kill a lua service",
-		kill = "kill address : kill service",
-		mem = "mem : show memory status",
-		gc = "gc : force every lua service do garbage collect",
-		start = "lanuch a new lua service",
-		snax = "lanuch a new snax service",
-		clearcache = "clear lua code cache",
-		service = "List unique service",
-		task = "task address : show service task detail",
-		uniqtask = "task address : show service unique task detail",
-		inject = "inject address luascript.lua",
-		logon = "logon address",
-		logoff = "logoff address",
-		log = "launch a new lua service with log",
-		debug = "debug address : debug a lua service",
-		signal = "signal address sig",
-		cmem = "Show C memory info",
-		jmem = "Show jemalloc mem stats",
-		ping = "ping address",
-		call = "call address ...",
-		trace = "trace address [proto] [on|off]",
-		netstat = "netstat : show netstat",
-		profactive = "profactive [on|off] : active/deactive jemalloc heap profilling",
-		dumpheap = "dumpheap : dump heap profilling",
+	local list = {
+		"help 		  This help message",
+		"list 		  List all the service",
+		"stat 		  Dump all stats",
+		"info 		  info address : get service infomation",
+		"exit 		  exit address : kill a lua service",
+		"kill 		  kill address : kill service",
+		"mem 		  mem : show memory status",
+		"gc 		  gc : force every lua service do garbage collect",
+		"start 		  lanuch a new lua service",
+		"snax 		  lanuch a new snax service",
+		"clearcache	  clear lua code cache",
+		"service 	  List unique service",
+		"task 		  task address : show service task detail",
+		"uniqtask 	  task address : show service unique task detail",
+		"inject		  inject address luascript.lua",
+		"logon 		  logon address",
+		"logoff		  logoff address",
+		"log 		  launch a new lua service with log",
+		"debug 		  debug address : debug a lua service",
+		"signal		  signal address sig",
+		"cmem 		  Show C memory info",
+		"jmem 		  Show jemalloc mem stats",
+		"ping 		  ping address",
+		"call 		  call address ...",
+		"trace 		  trace address [proto] [on|off]",
+		"netstat 	  netstat : show netstat",
+		"profactive	  profactive [on|off] : active/deactive jemalloc heap profilling",
+		"dumpheap 	  dumpheap : dump heap profilling",
+		"q		  quit socket",
+		-- "a		  attach service",
+		-- "s		  do script",
 	}
+	return table.concat(list, "\r\n")
 end
 
 function COMMAND.clearcache()

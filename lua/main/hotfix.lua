@@ -1,11 +1,13 @@
-require "cfgmgr"
+require "config"
+local skynet = require "skynet"
+-- local snax = require "snax"
 
 last_hotfix = last_hotfix
 files_date = files_date or {} -- 保存文件路径和文件修改时间戳 {{[path] = time}}
 loaded_cfg = loaded_cfg or {}
 
-local function send_snx(handle, method, ...)
-    -- Snx.rawsend(handle, "system", method, ...)
+local function send_snax(handle, method, ...)
+    skynet.send(handle, "snax", 3, method, ...) --send logind system.hotfix
 end
 
 function get_all_files(tb)
@@ -32,9 +34,9 @@ local function load_luas(files)
     end
     print("changed lua files:", #files, "\r\n\t" .. table.concat(files, "\r\n\t"))
     -- cache.clear()
-    -- for handle, _ in pairs(all_snx) do
-    --     send_snx(handle, "hotfix_luas", files)
-    -- end
+    for handle, _ in pairs(all_snax or {}) do
+        send_snax(handle, "hotfix_luas", files)
+    end
     -- system.hotfix_luas(files)
 end
 
@@ -43,11 +45,10 @@ function load_cfgs(files)
         return
     end
     print("changed config files:", #files, "\r\n\t" .. table.concat(files, "\r\n\t"))
-    -- local cfg_def = read_cfgs(files)
-    -- for handle, _ in pairs(all_snx) do
-    --     send_snx(handle, "hotfix_cfgs", cfg_def)
-    -- end
-    -- system.hotfix_cfgs(cfg_def)
+    for handle, _ in pairs(all_snax or {}) do
+        send_snax(handle, "hotfix_cfgs", files)
+    end
+    hotfix_cfgs(files)
 end
 
 local function load_protos(files)
@@ -55,33 +56,22 @@ local function load_protos(files)
         return
     end
     print("changed proto files:", #files, "\r\n\t" .. table.concat(files, "\r\n\t"))
-    -- for handle, _ in pairs(all_snx) do
-    --     send_snx(handle, "hotfix_protos", files)
-    -- end
-    -- system.hotfix_protos(files)
+    for handle, _ in pairs(all_snax or {}) do
+        send_snax(handle, "hotfix_protos", files)
+    end
+    hotfix_protos(files)
 end
 
-function init_cfg()
-    get_all_files(files_date)
-    local cfgs = {}
-    for path in pairs(files_date) do
-        local ok, name = read_config_path(path)
-        if ok then
-            table.insert(cfgs, name)
-        end
-    end
-    print("init_cfg:", Tbtostr(cfgs))
-end
 
 function test_hotfix(source, time)
     if not last_hotfix or time > last_hotfix.time then
         return
     end
     if next(last_hotfix.luas) then
-        send_snx(source, "hotfix_luas", last_hotfix.luas)
+        send_snax(source, "hotfix_luas", last_hotfix.luas)
     end
     if next(last_hotfix.cfgs) then
-        send_snx(source, "hotfix_cfgs", last_hotfix.cfgs)
+        send_snax(source, "hotfix_cfgs", last_hotfix.cfgs)
     end
 end
 

@@ -9,6 +9,8 @@ require "tool"
 require "hotfix"
 require "config"
 
+all_snax = all_snax or {}
+
 skynet.start(function()
     	-- 启动logind 开始监听端口8001
         local login_obj = snax.newservice("logind")
@@ -38,5 +40,5 @@ skynet.start(function()
         --     send_snx(handle, "hotfix_cfgs", cfg_def)
         -- end
         -- system.hotfix_cfgs(cfg_def)
-
+        all_snax = {login_obj, agentmgr_obj}
 end)

@@ -5,7 +5,7 @@ local skynet = require "skynet"
 local netpack = require "skynet.netpack"
 local socketdriver = require "skynet.socketdriver"
 local protobuf = require "protobuf"
-local snax = require "skynet.snax"
+local snax = require "snax"
 require "config"
 
 local user_fd = {}
