@@ -3,29 +3,9 @@ local skynet = require "skynet"
 -- local snax = require "snax"
 
 last_hotfix = last_hotfix
-files_date = files_date or {} -- 保存文件路径和文件修改时间戳 {{[path] = time}}
-loaded_cfg = loaded_cfg or {}
 
 local function send_snax(handle, method, ...)
     skynet.send(handle, "snax", 3, method, ...) --send logind system.hotfix
-end
-
-function get_all_files(tb)
-    local function get_files_date(files, dir)
-        local list = list_files(dir)
-        for _, file in ipairs(list) do
-            if not file.isdir then
-                files[file.fullname] = file.time
-            else
-                get_files_date(files, file.fullname)
-            end
-        end
-    end
-
-    local dirs = {"cfg/", "system/", "lua/", "proto/"} -- 加载这4个目录下的文件
-    for _, dir in pairs(dirs) do
-        get_files_date(tb, dir)
-    end
 end
 
 local function load_luas(files)

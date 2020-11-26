@@ -27,14 +27,6 @@ function get_server_obj(name)
 	return obj
 end
 
--- local function register_proto()
---     local path = "./proto"
---     local map = misc.list_dir(path)
---     for filename in pairs(map or {}) do
---        parser.register(filename, path)
---     end
--- end
-
 function send_client_proto(fd, name, body)
 	skynet.send(Login_gate, "lua", "send_proto", fd, name, body)
 end
@@ -99,14 +91,19 @@ end
 function init(server_name)
 	require "loginProto"
 
+	init_cfg()
+
 	-- 注册协议
 	register_proto()
+
+	local harbar = tonumber(skynet.getenv("harbor"))
+	local cfg = Getcfg("system.harbor")[harbar]
 
 	-- 启动网关服务
 	Login_gate = skynet.newservice("gated", "login", skynet.self())
 	skynet.call(Login_gate, "lua", "open" , {
-		port = 8001,
-		maxclient = 64
+		port = cfg.login_port,
+		maxclient = cfg.max_login_conn
 	})
 end
 

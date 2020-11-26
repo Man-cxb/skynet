@@ -26,7 +26,7 @@ end
 register_proto()
 
 -- 连接登陆服
-local login_fd = assert(socket.connect("127.0.0.1", 8001))
+local login_fd = assert(socket.connect("127.0.0.1", 9510))
 
 fd_list[login_fd] = {last = ""}
 

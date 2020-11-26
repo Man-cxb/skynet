@@ -3,7 +3,8 @@ local protobuf = require "protobuf"
 local parser = require "parser"
 local misc = require "misc"
 
-loaded_cfg = loaded_cfg or {}
+files_date = files_date or {} -- 保存文件路径和文件修改时间戳 {{[path] = time}}
+loaded_cfg = loaded_cfg or {} -- 配置缓存
 
 local CFG_DIR = "cfg/"
 local SYS_DIR = "system/"
@@ -76,6 +77,24 @@ CFG_CONVERT["system.service"] = function(self)
     return ret
 end
 
+local function get_all_files(tb)
+    local function get_files_date(files, dir)
+        local list = list_files(dir)
+        for _, file in ipairs(list) do
+            if not file.isdir then
+                files[file.fullname] = file.time
+            else
+                get_files_date(files, file.fullname)
+            end
+        end
+    end
+
+    local dirs = {"cfg/", "system/", "lua/", "proto/"} -- 加载这4个目录下的文件
+    for _, dir in pairs(dirs) do
+        get_files_date(tb, dir)
+    end
+end
+
 function init_cfg()
     get_all_files(files_date)
     local cfgs = {}
@@ -130,7 +149,3 @@ function hotfix_protos(protos)
         parser.register(protos, "proto/")
     end
 end
-
-
-
-
