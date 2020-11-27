@@ -77,7 +77,7 @@ CFG_CONVERT["system.service"] = function(self)
     return ret
 end
 
-local function get_all_files(tb)
+function get_all_files(tb)
     local function get_files_date(files, dir)
         local list = list_files(dir)
         for _, file in ipairs(list) do

@@ -1,15 +1,15 @@
-local skynet = require "skynet"
 require "skynet.manager"
+require "config"
+local skynet = require "skynet"
 local snax = require "snax"
 local datacenter = require "skynet.datacenter"
-require "config"
 
 local string = string
 local assert = assert
 
 local server_list = {}
-user_online = user_online or {}
 local err_cfg = {}
+user_online = user_online or {}
 Login_key = Login_key or {}
 Tourist_id = Tourist_id or {}
 Socket_fd = Socket_fd or {}
@@ -88,10 +88,8 @@ function hotfix(...)
 	D("login hotfix ", ...)
 end
 
-function init(server_name)
+function init()
 	require "loginProto"
-
-	init_cfg()
 
 	-- 注册协议
 	register_proto()

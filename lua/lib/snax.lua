@@ -4,6 +4,7 @@ require "tool"
 require "functions"
 require "common"
 require "gamedef"
+require "config"
 
 local snax = {}
 local typeclass = {}
@@ -164,6 +165,19 @@ end
 function snax.profile_info(obj)
 	local t = snax.interface(obj.type)
 	return skynet_call(obj.handle, "snax", t.system.profile)
+end
+
+function snax.time()
+	return skynet.now()//100 + skynet.starttime()
+end
+
+function snax.get_harbar_cfg()
+	local harbar = tonumber(skynet.getenv("harbor"))
+	if not harbar then
+		return nil
+	end
+	local cfg = Getcfg("system.harbor")[harbar]
+	return cfg
 end
 
 return snax

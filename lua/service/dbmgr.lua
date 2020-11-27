@@ -1,26 +1,12 @@
 local skynet = require "skynet"
 local mysql = require "skynet.db.mysql"
-require "tool"
-local strfmt = string.format
+local snax = require "snax"
 
+local strfmt = string.format
 DB = DB or {}
 Db_title = Db_title or {}
 
-local dbcfg = {
-    host = "127.0.0.1",
-    port = 33006,
-    database = "skynetdb",
-    user = "root",
-    password = "123456",
-    charset = "utf8mb4",
-    max_packet_size = 1024 * 1024,
-    on_connect = function (db)
-        db:query("set charset utf8mb4")
-    end
-}
-
 local function query_bd(sql)
-    D("---query sql-->", sql)
     return DB:query(sql)
 end
 
@@ -157,12 +143,26 @@ end
 
 skynet.start(function()
     skynet.dispatch("lua", function(_, source, command, ...)
-		skynet.error("----------db dispatch lua",V2S(command), ...)
+		-- skynet.error("----------db dispatch lua",V2S(command), ...)
 		local f = assert(cmd[command])
 		local msg, sz = skynet.pack(f(...))
 		skynet.ret(msg, sz)
     end)
     
+    local cfg = snax.get_harbar_cfg()
+    local dbcfg = {
+        host = cfg.db_host,
+        port = cfg.db_port,
+        database = cfg.db_name,
+        user = cfg.user,
+        password = cfg.password,
+        charset = "utf8mb4",
+        max_packet_size = cfg.db_max_packet,
+        on_connect = function (db)
+            db:query("set charset utf8mb4")
+        end
+    }
+
 	DB = mysql.connect(dbcfg)
 	if not DB then
 		print("failed to connect")

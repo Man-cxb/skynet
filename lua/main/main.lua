@@ -33,14 +33,6 @@ skynet.start(function()
 
     skynet.newservice("debug_console", cfg.gm_port)
 
-    
 
-    -- print("cfg sdk:",V2S(Getcfg("sdk")))
-    -- print("cfg system.game:",V2S(sharetable.query("system.game")))
-    -- print("cfg system.service:",V2S(sharetable.query("system.service")))
-    -- for handle, _ in pairs(all_snx) do
-    --     send_snx(handle, "hotfix_cfgs", cfg_def)
-    -- end
-    -- system.hotfix_cfgs(cfg_def)
     all_snax = {login_obj, agentmgr_obj}
 end)
