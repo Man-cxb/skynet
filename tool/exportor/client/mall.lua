@@ -1,0 +1,5 @@
+return {
+	[1] = { id = 1, item_id = 2002, name = "精良矿车", pay_item_id = 1, pay_item_num = 20000, describe = "一辆专用于高产矿区挖矿的精良矿车", belong_mall_type = 1, state = 1, attribute = 0, rely_item_list = nil, sell_type = 0, sell_num = nil, refresh_num_interval = nil, sell_day_type = nil, sell_day = nil, sell_time_type = nil, sell_time = nil, },
+	[2] = { id = 2, item_id = 2003, name = "稀有矿车", pay_item_id = 1, pay_item_num = 50000, describe = "一辆专用于黄金矿区挖矿的稀有矿车", belong_mall_type = 1, state = 1, attribute = 0, rely_item_list = nil, sell_type = 0, sell_num = nil, refresh_num_interval = nil, sell_day_type = nil, sell_day = nil, sell_time_type = nil, sell_time = nil, },
+	[3] = { id = 3, item_id = nil, name = "IPHONEX", pay_item_id = 2, pay_item_num = 370700, describe = "APPLE出产的全面屏手机，不要介意它的刘海", belong_mall_type = 2, state = 1, attribute = 1, rely_item_list = nil, sell_type = 0, sell_num = nil, refresh_num_interval = nil, sell_day_type = nil, sell_day = nil, sell_time_type = nil, sell_time = nil, },
+}
