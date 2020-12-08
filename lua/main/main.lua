@@ -1,4 +1,4 @@
-package.path = "lua/main/?.lua;" .. package.path
+-- package.path = "lua/main/?.lua;" .. package.path
 
 local skynet = require "skynet"
 local snax = require "snax"
@@ -31,8 +31,9 @@ skynet.start(function()
     
     -- -- skynet.newservice("dbmgr")
 
-    skynet.newservice("debug_console", cfg.gm_port)
+    snax.newservice("dbport", "127.0.0.1", cfg.debug_port)
 
+    skynet.register(".main")
 
     all_snax = {login_obj, agentmgr_obj}
 end)

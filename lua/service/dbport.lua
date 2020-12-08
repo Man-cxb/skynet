@@ -7,13 +7,17 @@ local memory = require "skynet.memory"
 local httpd = require "http.httpd"
 local sockethelper = require "http.sockethelper"
 
-local arg = table.pack(...)
-assert(arg.n <= 2)
-local ip = (arg.n == 2 and arg[1] or "127.0.0.1")
-local port = tonumber(arg[arg.n])
-
 local COMMAND = {}
 local COMMANDX = {}
+Msg = {
+	buffer = "",
+    data = "",
+	sub_data = nil,
+	
+	_type = nil,
+    attach = nil,
+}
+
 
 local function format_table(t)
 	local index = {}
@@ -81,10 +85,10 @@ local function docmd(cmdline, print, fd)
 
 	if ok then
 		if list then
-			if type(list) == "string" then
-				print(list)
-			else
+			if type(list) == "table" then
 				dump_list(print, list)
+			else
+				print(list)
 			end
 		end
 	else
@@ -124,7 +128,7 @@ local function console_main_loop(stdin, print)
 	socket.close(stdin)
 end
 
-skynet.start(function()
+function init(ip, port)
 	local listen_socket = socket.listen (ip, port)
 	skynet.error("Start debug console at " .. ip .. ":" .. port)
 	socket.start(listen_socket , function(id, addr)
@@ -139,7 +143,7 @@ skynet.start(function()
 		socket.start(id)
 		skynet.fork(console_main_loop, id , print)
 	end)
-end)
+end
 
 function COMMAND.help()
 	local list = {
@@ -172,7 +176,9 @@ function COMMAND.help()
 		"profactive	  profactive [on|off] : active/deactive jemalloc heap profilling",
 		"dumpheap 	  dumpheap : dump heap profilling",
 		"q		  quit socket",
-		-- "a		  attach service",
+		"post		  snax post",
+		"req		  snax request",
+		"c		  do lua script",
 		-- "s		  do script",
 	}
 	return table.concat(list, "\r\n")
@@ -460,4 +466,39 @@ function COMMAND.profactive(flag)
 	end
 	local active = memory.profactive()
 	return "heap profilling is ".. (active and "active" or "deactive")
+end
+
+function COMMAND.a(addr, _type)
+	if not addr then
+		Msg.attach = nil
+		Msg._type = nil
+	else
+		Msg.attach = adjust_address(addr)
+		Msg._type = _type or "agent"
+	end
+	
+	return string.format("attach to:%s,%s",Msg.attach or "(main)", Msg._type)
+end
+
+function COMMAND.post(cmd, ...)
+	if not Msg.attach then
+        return assert(load(cmd))(...)
+	end
+	local obj = snax.bind(Msg.attach, Msg._type)
+	obj.post[cmd](...)
+end
+
+function COMMAND.req(cmd, ...)
+	if not Msg.attach then
+        return assert(load(cmd))(...)
+	end
+	local obj = snax.bind(Msg.attach, Msg._type)
+	return obj.req[cmd](...)
+end
+
+function COMMAND.c(str)
+    if not Msg.attach then
+        return assert(load("return "..str))()
+	end
+	return nil
 end
