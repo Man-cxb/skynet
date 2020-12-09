@@ -1,5 +1,5 @@
 local misc = require "misc"
-
+D = print
 function V2S(val, max_dep, cur_dep, sp)
     max_dep = max_dep or 20
     cur_dep = cur_dep or 1
@@ -91,3 +91,6 @@ function list_files(dir)
     end
     return list
 end
+
+
+  

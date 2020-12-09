@@ -14,6 +14,20 @@ Login_key = Login_key or {}
 Tourist_id = Tourist_id or {}
 Socket_fd = Socket_fd or {}
 
+-- 分发协议方法，方法上面不要有accept方法，不然snaxd的id需要就对不上
+function accept.dispatch_proto(proto_name, body, fd)
+	D("----dispatch_proto----->>", proto_name, body, fd)
+	local func = LoginProto[proto_name]
+	if func then
+		local ok, err = pcall(func, body, fd)
+		if not ok then
+			skynet.error("call function fail:", proto_name, Tbtostr(body), err)
+		end
+	else
+		skynet.error("proto function not found:", proto_name, Tbtostr(body))
+	end
+end
+
 local sevobj = {}
 function get_server_obj(name)
 	if sevobj[name] then
@@ -51,20 +65,6 @@ function create_tourist()
 	return account
 end
 
--- 分发协议方法，方法上面不要有accept方法，不然snaxd的id需要就对不上
-function accept.dispatch_proto(proto_name, body, fd)
-	D("----dispatch_proto----->>", proto_name, body, fd)
-	local func = LoginProto[proto_name]
-	if func then
-		local ok, err = pcall(func, body, fd)
-		if not ok then
-			skynet.error("call function fail:", proto_name, Tbtostr(body), err)
-		end
-	else
-		skynet.error("proto function not found:", proto_name, Tbtostr(body))
-	end
-end
-
 function accept.register_gate(server, address)
 	server_list[server] = address
 end
@@ -84,8 +84,41 @@ function accept.game_login(player_id)
 	end
 end
 
+-- 从数据库加载所有帐户信息
+function accept.load_all_account()
+	-- local limit_begin = 0
+	-- local per_cnt = 2000
+	-- while true do
+	-- 	local res = Snx.call(".dbmgr", "query_db_data", "t_account", {}, limit_begin, per_cnt)
+	-- 	limit_begin = limit_begin + per_cnt
+	-- 	assert(res, "load_all_account fail!")
+	-- 	if #res <= 0 then
+	-- 		init_flag = true
+	-- 		break
+	-- 	end
+	-- 	for _, data in pairs(res) do
+	-- 		account_list[data.id] = data
+	-- 		name_list[data.name] = data
+	-- 		if data.binding_time and data.binding_time > 0 and data.phone_number and data.binding_time ~= "" then
+	-- 			phone_list[data.phone_number] = data
+	-- 		end
+	-- 	end
+	-- end
+end
+
+
 function hotfix(...)
 	D("login hotfix ", ...)
+end
+
+local cnt = 0
+function on_timer()
+	-- 检查连接，超时断连
+	print("定时调用", snax.time(), skynet.now(), cnt)
+	cnt = cnt + 1
+	if cnt == 10 then
+		cancel_timeout()
+	end
 end
 
 function init()
@@ -94,15 +127,20 @@ function init()
 	-- 注册协议
 	register_proto()
 
-	local harbar = tonumber(skynet.getenv("harbor"))
-	local cfg = Getcfg("system.harbor")[harbar]
-
 	-- 启动网关服务
+	local cfg = snax.get_harbar_cfg()
+	assert(cfg, "miss harbar cfg")
 	Login_gate = skynet.newservice("gated", "login", skynet.self())
 	skynet.call(Login_gate, "lua", "open" , {
 		port = cfg.login_port,
 		maxclient = cfg.max_login_conn
 	})
+
+	local obj = snax.self()
+	obj.post.load_all_account()
+	math.randomseed(snax.time())
+
+	cancel_timeout = interval_timeout(100, "on_timer")
 end
 
 function exit(...)
