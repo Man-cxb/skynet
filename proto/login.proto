@@ -33,7 +33,7 @@ message cs_login_create
 message cs_login_verify
 {
 	required int32   type 			= 1;	// 0-游客登录(带密码时与密码登录一致，否则注册游客帐号) 1-密码登录 2-手机号码 3-授权码登录 4-sdk登陆
-	optional string  name 			= 2;	// 帐户名
+	optional string  name 			= 2;	// 帐户名/手机号
 	optional string  passwd 		= 3;	// 密码
 	optional string  auth_code		= 4;	// 授权码
 	optional string  sms_code 		= 5;	// 短信验证码
@@ -51,6 +51,11 @@ message sc_login_verify_not_exist
 	required int32   type 			= 1;	// 0-游客登录(带密码时与密码登录一致，否则注册游客帐号) 1-密码登录 2-授权码登录
 	optional string  name 			= 2;	// 帐户名
 	optional int32   error_type 	= 3;	// 1, 账号不存在, 2 密码或者授权码错误
+}
+
+message cs_login_check_account
+{
+	required string  name 			= 1;	// 帐户名或手机号码
 }
 
 // 授权码信息
@@ -100,4 +105,40 @@ message sc_login_server_list
 	repeated int64 	history 	= 1; 	// 最近登陆的服务器列表
 	required int64 	recommend 	= 2;	// 推荐服务器id
 	repeated server list 		= 3;	// 服务器列表
+}
+
+// 发送短信验证码
+message cs_login_send_smscode
+{
+	required string  phone_number 	= 1;	// 手机号码
+	required int32 	 sms_type 		= 2;	// 参见sms_tpl.xls,模板ID
+}
+
+// 获取短信验证码，测试用
+message cs_login_get_smscode
+{
+	required int32 	 sms_type 		= 1;	// 参见sms_tpl.xls,模板ID
+}
+
+// 向前端发送短信验证码，测试用
+message sc_login_get_smscode
+{
+	required int32 	 sms_type 		= 1;	// 参见sms_tpl.xls,模板ID
+	required string  sms_code 		= 2;	// 短信验证码
+}
+
+// 检测短信验证码
+message cs_login_check_sms
+{
+	required int32  sms_type		= 1;	// 参见sms_tpl.xls,模板ID
+	required string sms_code 		= 2;	// 短信验证码
+}
+
+// 找回密码
+message cs_login_reset_passwd
+{
+	required string  name 			= 1;	// 用户名，用短信注册时，为手机号
+	required string  new_passwd		= 2;	// 新密码
+	required string  sms_code		= 3;	// 短信验证码
+	required int32 	 sms_type 		= 4;	// 参见sms_tpl.xls,模板ID 
 }

@@ -17,6 +17,16 @@ local socket	-- listen socket
 local gate_type, target_handle = ... -- 网关类型
 local agent_handle = {}
 
+local function send_socket_status(fd, status)
+	-- todo
+	if gate_type == "login" then
+		-- skynet.send(target_handle, "snax", 5, proto_name, body, fd) --send logind accept.dispatch_proto
+
+	elseif gate_type == "game" then
+
+	end
+end
+
 -- 协议请求
 local function do_request(fd, message)
 	local transfer = protobuf.decode("proto.transfer", message)
@@ -101,6 +111,7 @@ function SOCKET_MSG.open(fd, addr)
 
 	socketdriver.start(fd)
 	skynet.error("SOCKET_MSG.open", fd, addr)
+	send_socket_status(fd, "socket_connection")
 end
 
 local function disconnect(fd)
@@ -116,6 +127,7 @@ end
 
 function SOCKET_MSG.close(fd)
 	if fd ~= socket then
+		send_socket_status(fd, "socket_close")
 		disconnect(fd)
 	else
 		socket = nil
@@ -126,6 +138,7 @@ function SOCKET_MSG.error(fd, msg)
 	if fd == socket then
 		skynet.error("gateserver accpet error:",msg)
 	else
+		send_socket_status(fd, "socket_error")
 		disconnect(fd)
 	end
 end

@@ -29,7 +29,7 @@ skynet.start(function()
     })
     datacenter.set("game_gate_handle", game_gate)
     
-    -- skynet.newservice("dbmgr")
+    skynet.newservice("dbmgr")
 
     snax.newservice("dbport", "127.0.0.1", cfg.debug_port)
 
