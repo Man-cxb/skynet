@@ -154,8 +154,8 @@ skynet.start(function()
         host = cfg.db_host,
         port = cfg.db_port,
         database = cfg.db_name,
-        user = cfg.user,
-        password = cfg.password,
+        user = cfg.db_user,
+        password = cfg.db_password,
         charset = "utf8mb4",
         max_packet_size = cfg.db_max_packet,
         on_connect = function (db)
@@ -168,6 +168,7 @@ skynet.start(function()
 		print("failed to connect")
     end
 
+    skynet.register(".dbmgr")
     -- cmd.save_data("t_global", {key = "test", data = "my data"})
     -- local res = cmd.query_db_data("t_global", {key = "test"})
     -- D(V2S(res))
