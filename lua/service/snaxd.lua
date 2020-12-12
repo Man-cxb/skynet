@@ -55,7 +55,7 @@ skynet.start(function()
 		if method[2] == "system" then
 			local command = method[3]
 			if command == "hotfix" then
-				local hotfix = require "snax.hotfix"
+				local hotfix = require "hotfix"
 				skynet.ret(skynet.pack(hotfix(func, ...)))
 			elseif command == "profile" then
 				skynet.ret(skynet.pack(profile_table))

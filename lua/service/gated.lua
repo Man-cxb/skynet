@@ -68,6 +68,7 @@ local function dispatch_msg(fd, msg, sz)
 	else
 		skynet.error(string.format("Drop message from fd (%d) : %s", fd, netpack.tostring(msg,sz)))
 	end
+	skynet.trash(msg, sz)
 end
 SOCKET_MSG.data = dispatch_msg
 
