@@ -9,10 +9,12 @@ gateway = gateway
 socket_fd = socket_fd
 g_player = g_player
 
-function init(player_id)
+function init(player_id, gateway, socket_fd)
 	D("agent start")
     require "include"
     g_player_id = player_id
+    gateway = gateway
+    socket_fd = socket_fd
 end
 
 function exit(...)

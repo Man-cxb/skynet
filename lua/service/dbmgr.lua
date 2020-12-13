@@ -1,4 +1,5 @@
 local skynet = require "skynet"
+require "skynet.manager"
 local mysql = require "skynet.db.mysql"
 local snax = require "snax"
 

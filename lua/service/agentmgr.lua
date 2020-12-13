@@ -70,6 +70,35 @@ function accept.update_key(player_id, key, login_handle)
     Key_list[player_id] = {key = key, login_handle = login_handle}
 end
 
+function response.try_login_agent(player_id, socket_fd, gate_handle)
+    local data = Key_list[player_id]
+    if not data then
+        return false, "PLAYER_KEY_NOT_MATCH", "login key verify failed!"
+    end
+    local player = Player_list[player_id]
+    if player then
+
+        snax.bind(player.handle, "agent").post.reconnect(socket_fd, gate_handle)
+    else
+        player = {
+            handle = snax.newservice("agent", player_id, gate_handle, socket_fd)
+        }
+        Player_list[player_id] = player
+    end
+    Agent_list[player.handle] = {
+        fd = socket_fd,
+        -- addr = addr,
+        handle = player.handle,
+        conn_time = snax.time(),
+    }
+    return true, "", player.handle
+end
+--[[
+          fd = fd,
+        addr = addr,
+        handle = handle,
+        conn_time = Snx.time(),
+]]
 -- 加载所有玩家的简要信息
 function accept.load_player_brief()
     -- local limit_begin = 0

@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS `t_account`;
 CREATE TABLE `t_account` (
     `id`  bigint(20) NOT NULL comment '帐户ID',
-    `name` varchar(64) NOT NULL comment '帐户名称',
+    `user` varchar(64) NOT NULL comment '帐户名称',
     `passwd` varchar(128) NOT NULL comment '密码',
     `auth_code` varchar(128) NOT NULL comment '登录授权码',
     `reg_type` int NOT NULL default 0 comment '注册类型 0-游客 1-密码注册 2-手机注册 ',
@@ -10,7 +10,7 @@ CREATE TABLE `t_account` (
     `binding_time` bigint(20) NOT NULL comment '绑定时间',
     `create_time` bigint(20) NOT NULL comment '创建时间',
     `op_time` bigint(20) NOT NULL comment '修改时间',
-    UNIQUE KEY `idx_name` (`name`), 
+    UNIQUE KEY `idx_name` (`user`), 
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

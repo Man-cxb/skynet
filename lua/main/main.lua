@@ -12,6 +12,9 @@ all_snax = all_snax or {}
 
 skynet.start(function()
     init_cfg()
+
+    skynet.newservice("dbmgr")
+
     -- 启动logind 开始监听端口8001
     local login_obj = snax.newservice("logind")
     datacenter.set("logind_handle", login_obj.handle)
@@ -28,8 +31,6 @@ skynet.start(function()
         maxclient = cfg.max_game_conn
     })
     datacenter.set("game_gate_handle", game_gate)
-    
-    skynet.newservice("dbmgr")
 
     snax.newservice("dbport", "127.0.0.1", cfg.debug_port)
 

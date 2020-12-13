@@ -24,7 +24,7 @@ function LoginProto:cs_login_get_smscode(fd)
 end
 
 function LoginProto:cs_login_create(fd)
-	local acc_name, passwd = self.name, self.passwd
+	local user, passwd = self.name, self.passwd
 	if self.type == AccRegType.Phone then
 		local ok, code, msg = Check_smscode(fd, self.sms_type, self.sms_code)
 		if not ok then
@@ -32,16 +32,16 @@ function LoginProto:cs_login_create(fd)
 		end
 		passwd = string.format("%06d", math.random(100000, 999999))
 	end
-	local ok, data, msg = register_account(acc_name, passwd, self.type)
+	local ok, data, msg = Register_account(user, passwd, self.type)
 	if not ok then
 		return false, data, msg
 	end
 
 	-- data.login_guid = gen_guid("login", data.id) -- 为每一次登陆生成唯一id，方便数据跟踪
 
-	send_client_proto(fd, "sc_login_auth_info", {name = acc_name, auth_code = data.auth_code})
+	send_client_proto(fd, "sc_login_auth_info", {user = user, auth_code = data.auth_code})
 
-	local agentmgr = Get_server_obj("agentmgr")
+	local agentmgr = snax.bind(Get_service_handle("agentmgr"), "agentmgr")
 	local server = agentmgr.req.get_login_server(data.id)
 	local login_key = Gen_login_key()
 	agentmgr.post.update_key(data.id, login_key, Self_handle)
@@ -65,23 +65,23 @@ function LoginProto:cs_login_check_account(fd)
 end
 
 function LoginProto:cs_login_verify(fd)
-	local acc_name, passwd = self.acc_name, self.passwd
+	local user, passwd = self.user, self.passwd
 	-- 游客登陆验证时，创建游客账号
 	if self.type == LoginVerifyType.Tourist then
 		local ok, data, msg = Create_tourist_account()
 		if not ok then
 			return false, data, msg
 		end
-		local ok, data, msg = register_account(data.acc_name, data.passwd, self.type)
-		if not ok then
-			return false, data, msg
+		local ok1, acc, msg = Register_account(data.user, data.passwd, self.type)
+		if not ok1 then
+			return false, acc, msg
 		end
-		acc_name = data.acc_name
-		passwd = data.passwd
-		send_client_proto(fd, "sc_login_vistor_info", {name = data.acc_name, passwd = data.passwd})
+		user = acc.user
+		passwd = acc.passwd
+		send_client_proto(fd, "sc_login_vistor_info", {user = user, passwd = data.passwd})
 	end
 
-	local data = Name_list[acc_name] or Phone_list[acc_name]
+	local data = Name_list[user] or Phone_list[user]
 	if not data then
 		return false, "LOGIN_ACC_NOT_EXISTS", "帐号不存在"
 	end
@@ -106,9 +106,9 @@ function LoginProto:cs_login_verify(fd)
 	end
 	-- data.login_guid = gen_guid("login", data.id) -- 为每一次登陆生成唯一id，方便数据跟踪
 
-	send_client_proto(fd, "sc_login_auth_info", {name = acc_name, auth_code = data.auth_code})
-	
-	local agentmgr = Get_server_obj("agentmgr")
+	send_client_proto(fd, "sc_login_auth_info", {user = user, auth_code = data.auth_code})
+
+	local agentmgr = snax.bind(Get_service_handle("agentmgr"), "agentmgr")
 	local server = agentmgr.req.get_login_server(data.id)
 	local login_key = Gen_login_key()
 	agentmgr.post.update_key(data.id, login_key, Self_handle)

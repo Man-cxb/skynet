@@ -17,7 +17,7 @@ message device
 // 创建帐户
 message cs_login_create
 {
-	required string  name 			= 1;   	// 帐户名
+	required string  user 			= 1;   	// 帐户名
 	required int32   type 			= 2;	// 类型 1-账号密码 2-手机号码 4-sdk登陆
 	optional string  passwd 		= 3;	// 密码，密码登录时需要使用
 	optional string  sms_code		= 4;	// 短信验证码 (注册成功后，可考虑通过短信向玩家发送登录密码)
@@ -33,7 +33,7 @@ message cs_login_create
 message cs_login_verify
 {
 	required int32   type 			= 1;	// 0-游客登录(带密码时与密码登录一致，否则注册游客帐号) 1-密码登录 2-手机号码 3-授权码登录 4-sdk登陆
-	optional string  name 			= 2;	// 帐户名/手机号
+	optional string  user 			= 2;	// 帐户名/手机号
 	optional string  passwd 		= 3;	// 密码
 	optional string  auth_code		= 4;	// 授权码
 	optional string  sms_code 		= 5;	// 短信验证码
@@ -49,26 +49,26 @@ message cs_login_verify
 message sc_login_verify_not_exist
 {
 	required int32   type 			= 1;	// 0-游客登录(带密码时与密码登录一致，否则注册游客帐号) 1-密码登录 2-授权码登录
-	optional string  name 			= 2;	// 帐户名
+	optional string  user 			= 2;	// 帐户名
 	optional int32   error_type 	= 3;	// 1, 账号不存在, 2 密码或者授权码错误
 }
 
 message cs_login_check_account
 {
-	required string  name 			= 1;	// 帐户名或手机号码
+	required string  user 			= 1;	// 帐户名或手机号码
 }
 
 // 授权码信息
 message sc_login_auth_info
 {
-	required string  name 			= 1;	// 帐户名
+	required string  user 			= 1;	// 帐户名
 	required string  auth_code		= 2;	// 授权码
 }
 
 // 游客帐号信息
 message sc_login_vistor_info
 {
-	required string  name 			= 1;	// 帐号名
+	required string  user 			= 1;	// 帐号名
 	required string  passwd 		= 2;	// 密码(明文)
 }
 
@@ -137,7 +137,7 @@ message cs_login_check_sms
 // 找回密码
 message cs_login_reset_passwd
 {
-	required string  name 			= 1;	// 用户名，用短信注册时，为手机号
+	required string  user 			= 1;	// 用户名，用短信注册时，为手机号
 	required string  new_passwd		= 2;	// 新密码
 	required string  sms_code		= 3;	// 短信验证码
 	required int32 	 sms_type 		= 4;	// 参见sms_tpl.xls,模板ID 

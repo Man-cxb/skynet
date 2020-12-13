@@ -82,7 +82,7 @@ function PlayerProto:sc_login_vistor_info(fd)
 end
 
 function PlayerProto:sc_login_server_info(fd)
-    print("登陆服信息:", Tbtostr(self))
+    -- print("登陆服信息:", Tbtostr(self))
 
     game_fd = assert(socket.connect(self.domain, self.port))
     fd_list[game_fd] = {last = ""}
@@ -95,6 +95,7 @@ function PlayerProto:sc_player_role_data(fd)
 end
 
 function PlayerProto:sc_err(fd)
+    print("sc_err:", Tbtostr(self))
 end
 
 function PlayerProto:default(fd, name, parm)
@@ -122,7 +123,9 @@ local function dispatch_package(fd)
 	end
 end
 
-send_request(login_fd, "proto.cs_login_verify", {type = 0})
+local game_fd = assert(socket.connect("127.0.0.1", 9500))
+send_request(game_fd, "proto.cs_player_enter", {account_id = 0, login_key = ""})
+-- send_request(login_fd, "proto.cs_login_verify", {type = 0})
 
 while true do
     if login_fd then
@@ -134,10 +137,10 @@ while true do
     end
     if game_fd then
         dispatch_package(game_fd)
-        -- send_request(game_fd, "cs_ping", {client_time = os.time()})
+        -- send_request(game_fd, "proto.cs_ping", {client_time = os.time()})
     end
-    -- if login_fd then
-    --     send_request(login_fd, "cs_ping", {client_time = os.time()})
-    -- end
+    if login_fd then
+        -- send_request(login_fd, "proto.cs_ping", {client_time = os.time()})
+    end
     socket.usleep(1000000)
 end
