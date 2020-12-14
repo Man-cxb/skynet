@@ -17,4 +17,8 @@ make OUT_PATH=$clib SKYNET=$dir/skynet-src
 # chmod -R 777 $skynet
 # chmod -R 777 $clib
 
-
+cd $dir/3rd/lua-cjson
+make clean
+make
+\cp cjson.so $OutDir/luaclib/ -fr
+make clean

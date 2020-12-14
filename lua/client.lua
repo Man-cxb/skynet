@@ -123,9 +123,9 @@ local function dispatch_package(fd)
 	end
 end
 
-local game_fd = assert(socket.connect("127.0.0.1", 9500))
-send_request(game_fd, "proto.cs_player_enter", {account_id = 0, login_key = ""})
--- send_request(login_fd, "proto.cs_login_verify", {type = 0})
+-- local game_fd = assert(socket.connect("127.0.0.1", 9500))
+-- send_request(game_fd, "proto.cs_player_enter", {account_id = 0, login_key = ""})
+send_request(login_fd, "proto.cs_login_verify", {type = 0})
 
 while true do
     if login_fd then

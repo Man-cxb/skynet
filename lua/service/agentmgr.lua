@@ -7,6 +7,7 @@ Slave_list = Slave_list or {}
 Player_list = Player_list or {}
 Player_cnt = Player_cnt or 0
 Key_list = Key_list or {}
+Stat_list = Stat_list or {}
 
 Game_addr = Game_addr
 Game_port = Game_port
@@ -77,11 +78,11 @@ function response.try_login_agent(player_id, socket_fd, gate_handle)
     end
     local player = Player_list[player_id]
     if player then
-
         snax.bind(player.handle, "agent").post.reconnect(socket_fd, gate_handle)
     else
+        local agent = snax.newservice("agent", player_id, gate_handle, socket_fd)
         player = {
-            handle = snax.newservice("agent", player_id, gate_handle, socket_fd)
+            handle = agent.handle
         }
         Player_list[player_id] = player
     end
@@ -93,12 +94,15 @@ function response.try_login_agent(player_id, socket_fd, gate_handle)
     }
     return true, "", player.handle
 end
---[[
-          fd = fd,
-        addr = addr,
-        handle = handle,
-        conn_time = Snx.time(),
-]]
+
+function response.get_login_handle(player_id)
+    local data = Key_list[player_id]
+    if not data then
+        return nil
+    end
+    return data.login_handle
+end
+
 -- 加载所有玩家的简要信息
 function accept.load_player_brief()
     -- local limit_begin = 0
@@ -123,6 +127,55 @@ function accept.load_player_brief()
     -- end
 end
 
+function accept.player_login(handle, player_id, player_name, agent_ip, channel, terminal)
+    assert(Agent_list[handle])
+
+    terminal = terminal or 0
+    channel = channel or "00000"
+    local player = Player_list[player_id]
+    if not player then
+        player = { player_id = player_id, handle = handle, terminal = terminal, channel = channel}
+        Player_list[player_id] = player
+    else
+        local old = Stat_list[player.channel]
+        if old and old[player.terminal] then
+            old[player.terminal] = old[player.terminal] -1
+        end
+
+        player.handle = handle
+        player.terminal = terminal
+        player.channel = channel
+    end
+
+    local terminal_tbl = Stat_list[channel]
+    if not terminal_tbl then
+        terminal_tbl = {}
+        Stat_list[channel] = terminal_tbl
+    end
+    terminal_tbl[terminal] = (terminal_tbl[terminal] or 0) + 1
+
+    player.status = "login"
+end
+
+function accept.player_logout(player_id)
+    local player = Player_list[player_id]
+    if not player then
+        return 
+    end
+    player.status = "offline"
+
+    local agent = Agent_list[player.handle]
+    if not agent then
+        return
+    end
+    agent.player_id = player_id
+
+    local old = Stat_list[player.channel]
+    if old and old[player.terminal] then
+        old[player.terminal] = old[player.terminal] -1
+    end
+end
+
 function hotfix(...)
 	D("agentmgr hotfix ", ...)
 end
@@ -131,7 +184,9 @@ function init()
 	local cfg = snax.get_harbar_cfg()
 	Game_addr = cfg.game_ip
 	Game_port = cfg.game_port
-	snax.self().post.load_player_brief()
+    snax.self().post.load_player_brief()
+    
+    skynet.register(".agentmgr")
 end
 
 function exit(...)

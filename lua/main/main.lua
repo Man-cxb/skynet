@@ -23,7 +23,7 @@ skynet.start(function()
     datacenter.set("agentmgr_handle", agentmgr_obj.handle)
 
     local harbar = tonumber(skynet.getenv("harbor"))
-	local cfg = Getcfg("system.harbor")[harbar]
+	local cfg = GetCfg("system.harbor")[harbar]
     -- -- 启动游戏服网关
     local game_gate = skynet.newservice("gated", "game", agentmgr_obj.handle)
     skynet.call(game_gate, "lua", "open" , {

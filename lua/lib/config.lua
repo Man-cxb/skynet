@@ -107,7 +107,7 @@ function init_cfg()
     print("init_cfg:", Tbtostr(cfgs))
 end
 
-function Getcfg(name)
+function GetCfg(name)
     local cfg = loaded_cfg[name]
     if cfg then
         return cfg

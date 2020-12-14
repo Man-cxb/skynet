@@ -1,3 +1,6 @@
+-- 性别枚举
+EnumSex = {"NONE", "BOY", "GIRL"}
+
 -- 账号注册类型
 AccRegType = {
     Auto = 0, -- 游客

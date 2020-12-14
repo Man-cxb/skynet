@@ -92,5 +92,32 @@ function list_files(dir)
     return list
 end
 
-
+function deep_copy_table(tb, max_depth, cur_depth, cache)
+    cache = cache or {}
+    max_depth = max_depth or 20
+    cur_depth = cur_depth or 0
+    if type(tb) ~= "table" then
+        return tb
+    end
+    if cache[tb] then
+        return tb
+    end
+    cache[tb] = true
+    local ret = {}
+    if cur_depth >= max_depth then
+        return ret
+    end
+    for k, v in pairs(tb) do
+        local t = k
+        if type(k) == "table" then
+            t = deep_copy_table(k, max_depth, cur_depth + 1, cache)
+        end
+        if type(v) == "table" then
+            ret[t] = deep_copy_table(v, max_depth, cur_depth + 1, cache)
+        else
+            ret[t] = v
+        end
+    end
+    return ret
+end
   

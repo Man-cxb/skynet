@@ -47,3 +47,7 @@ function Get_unique_id_server(unique_id)
     local bit = (unique_id & 0x0F) + 1
     return (unique_id >> 4) & ((1 << bit) - 1)
 end
+
+function throw(msg)
+    error({msg = msg or "未知错误"})
+end

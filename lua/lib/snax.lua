@@ -176,7 +176,7 @@ function snax.get_harbar_cfg()
 	if not harbar then
 		return nil
 	end
-	local cfg = Getcfg("system.harbor")[harbar]
+	local cfg = GetCfg("system.harbor")[harbar]
 	return cfg
 end
 

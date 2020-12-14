@@ -2,7 +2,7 @@ local snax = require "snax"
 LoginProto = LoginProto or {}
 
 function LoginProto:cs_login_send_smscode(fd)
-	-- local cfg = Getcfg("sms_tpl")[self.sms_type]
+	-- local cfg = GetCfg("sms_tpl")[self.sms_type]
     -- if not cfg then
     --     return false, "LOGIN_SMS_TPL_ERR", "短信模板错误"
     -- end

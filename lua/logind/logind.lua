@@ -42,7 +42,7 @@ function show_proto(title, name, proto)
 	if not_show_proto[name] then
         return
 	end
-	-- local Debug = Getcfg("system.debug")
+	-- local Debug = GetCfg("system.debug")
     -- local DbgMod = Debug.DbgMod
     -- local open = DbgMod.proto
     -- if open == nil then
@@ -60,7 +60,7 @@ function send_client_proto(fd, name, body)
 end
 
 function send_err(fd, name, code, msg, session)
-	local cfg = Getcfg("errno")
+	local cfg = GetCfg("errno")
 	-- local cfg = err_cfg[code] or {}
 	skynet.send(Login_gate, "lua", "send_proto", fd, "sc_err", {proto_name = name, code = cfg.id or 0, content = msg, session = session})
 end
@@ -180,9 +180,9 @@ function Register_account(user, pass, typ)
 	end
 
 	-- 数据同步入库
-	-- if not skynet.call(".dbmgr", "sync_save_data", "t_account", data, true) then
-	-- 	return false, "LOGIN_DB_ERR", "数据库异常"
-	-- end
+	if not skynet.call(".dbmgr", "lua", "sync_save_data", "t_account", data, true) then
+		return false, "LOGIN_DB_ERR", "数据库异常"
+	end
 
 	update_account(data)
 	
@@ -278,11 +278,11 @@ function init()
 	Server_id = cfg.server_id
 	math.randomseed(snax.time())
 	
-	-- local res = skynet.call(".dbmgr", "query_db_data", "t_global", {key = "account_id_" .. Server_id})
-	-- assert(res, "table t_global not exists!")
-	-- if #res > 0 then
-	-- 	Raw_acc_id = tonumber(res[1].data)
-	-- end
+	local res = skynet.call(".dbmgr", "lua", "query_db_data", "t_global", {key = "account_id_" .. Server_id})
+	assert(res, "table t_global not exists!")
+	if #res > 0 then
+		Raw_acc_id = tonumber(res[1].data)
+	end
 	
 	local obj = snax.self()
 	obj.post.load_all_account()
@@ -321,22 +321,26 @@ end
 
 -- 从数据库加载所有帐户信息
 function accept.load_all_account()
-	-- local limit_begin = 0
-	-- local per_cnt = 2000
-	-- while true do
-	-- 	local res = Snx.call(".dbmgr", "query_db_data", "t_account", {}, limit_begin, per_cnt)
-	-- 	limit_begin = limit_begin + per_cnt
-	-- 	assert(res, "load_all_account fail!")
-	-- 	if #res <= 0 then
-	-- 		init_flag = true
-	-- 		break
-	-- 	end
-	-- 	for _, data in pairs(res) do
-	-- 		account_list[data.id] = data
-	-- 		name_list[data.name] = data
-	-- 		if data.binding_time and data.binding_time > 0 and data.phone_number and data.binding_time ~= "" then
-	-- 			phone_list[data.phone_number] = data
-	-- 		end
-	-- 	end
-	-- end
+	local limit_begin = 0
+	local per_cnt = 2000
+	while true do
+		local res = skynet.call(".dbmgr", "lua", "query_db_data", "t_account", {}, limit_begin, per_cnt)
+		limit_begin = limit_begin + per_cnt
+		assert(res, "load_all_account fail!")
+		if #res <= 0 then
+			init_flag = true
+			break
+		end
+		for _, data in pairs(res) do
+			Account_list[data.id] = data
+			Name_list[data.user] = data
+			if data.binding_time and data.binding_time > 0 and data.phone_number and data.binding_time ~= "" then
+				Phone_list[data.phone_number] = data
+			end
+		end
+	end
+end
+
+function response.get_data(account_id)
+    return Account_list[account_id]
 end

@@ -18,6 +18,7 @@ local nodelay = false
 local socket	-- listen socket
 local gate_type, target_handle = ... -- 网关类型
 local agent_handle = {}
+local CMD = setmetatable({}, { __gc = function() netpack.clear(queue) end })
 
 local function send_socket_connect(fd)
 	if gate_type == "login" then
@@ -33,12 +34,8 @@ local function get_player_handle(proto, fd)
 	end
 
 	local agentmgr = snax.bind(target_handle, "agentmgr")
-	local ok, code, msg = agentmgr.req.try_login_agent(proto.account_id, fd, snax.self().handle)
+	return agentmgr.req.try_login_agent(proto.account_id, fd, skynet.self())
 	-- local ok, code, msg = cs(agentmgr.req.try_login_agent(proto.account_id, fd, snax.self().handle))
-	if not ok then
-		return false, code, msg
-	end
-    return true, msg
 end
 
 -- 协议请求
@@ -54,19 +51,17 @@ local function do_request(fd, message)
 
 		elseif gate_type == "game" then
 			if agent_handle[fd] then
-				skynet.send(agent_handle[fd], "snax", 5, proto_name, body, fd) --send agent accept.dispatch_proto
+				snax.bind(agent_handle[fd], "agent").post.dispatch_proto(proto_name, body, fd)
 			else
 				if proto_name == "cs_player_enter" then
-					local handle = get_player_handle(body, fd)
+					local ok, code, handle = get_player_handle(body, fd)
+					if not ok then
+						CMD.send_proto(fd, "sc_err", {code = -1, proto_name = proto_name})
+						return
+					end
 					assert(handle, "玩家未正常登陆")
 					agent_handle[fd] = handle
-					-- skynet.send(handle, "snax", 6, skynet.self(), fd) -- send agent accept.register_agent_master
-					local ok = skynet.call(handle, "snax", 6, skynet.self(), fd) -- send agent accept.register_agent_master
-					if ok then
-						skynet.send(handle, "snax", 5, proto_name, body, fd) -- send agent accept.dispatch_proto
-					else
-						D("call agent fail", handle, body.account_id)
-					end
+					snax.bind(handle, "agent").post.dispatch_proto(proto_name, body, fd)
 				else
 					skynet.error("玩家未在登陆服登陆，不能进入游戏服")
 				end
@@ -173,7 +168,7 @@ skynet.register_protocol {
 	end
 }
 
-local CMD = setmetatable({}, { __gc = function() netpack.clear(queue) end })
+
 function CMD.open(conf)
 	assert(not socket)
 	local address = conf.address or "0.0.0.0"
