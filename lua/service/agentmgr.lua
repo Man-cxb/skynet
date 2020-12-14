@@ -1,6 +1,7 @@
 require "skynet.manager"
 local skynet = require "skynet"
 local snax = require "snax"
+local sharetable = require "skynet.sharetable"
 
 Agent_list = Agent_list or {}
 Slave_list = Slave_list or {}
@@ -174,6 +175,21 @@ function accept.player_logout(player_id)
     if old and old[player.terminal] then
         old[player.terminal] = old[player.terminal] -1
     end
+end
+
+function accept.update_player(player_id, name, avatar_id, sex)
+    -- local old = Tool.sim_get("player", player_id)
+    -- if not old then
+    --     old = {
+    --         nick_name = name,
+    --         avatar_id = avatar_id,
+    --         sex = sex}
+    -- else
+    --     old.nick_name = name or old.nick_name
+    --     old.avatar_id = avatar_id or old.avatar_id
+    --     old.sex = sex or old.sex
+    -- end
+    -- Tool.sim_set("player", player_id, old)
 end
 
 function hotfix(...)

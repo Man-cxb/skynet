@@ -8,6 +8,7 @@ DB = DB or {}
 Db_title = Db_title or {}
 
 local function query_bd(sql)
+    skynet.error("sql:",sql)
     return DB:query(sql)
 end
 

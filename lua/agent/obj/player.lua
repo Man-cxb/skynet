@@ -36,11 +36,11 @@ function M:login(device, ip)
 	self.login_time = snax.time()
 	self.device = device or {}
     self.ip = g_agent_fd
-    snax.bind(".agentmgr", "agentmgr").player_login(skynet.self(), self.player.account_id, self.player.nick_name, self.ip, device.channel, device.terminal)
+    snax.bind(".agentmgr", "agentmgr").post.player_login(skynet.self(), self.player.account_id, self.player.nick_name, self.ip, device.channel, device.terminal)
 end
 
 function M:logout()
-    snax.bind(".agentmgr", "agentmgr").player_logout(self.player.account_id)
+    snax.bind(".agentmgr", "agentmgr").post.player_logout(self.player.account_id)
 end
 
 function M:update_player(data, is_init)

@@ -123,8 +123,8 @@ end
 
 -- 热更配置
 function hotfix_cfgs(list)
-    sharetable.update(list)
     for _, name in pairs(list) do
+        sharetable.update(name)
         if loaded_cfg[name] then
             loaded_cfg[name] = sharetable.query(name)
         end

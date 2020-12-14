@@ -75,14 +75,14 @@ function dispatch_proto(proto, name)
     local modue_name = name:sub(4, 2+(name:sub(4):find("_") or #name - 2))
     local handle = skynet.localname("." .. modue_name)
     if not handle then
-        accept.send_err(name, 0, "未找到对应模块" .. modue_name, proto.session)
+        send_err(name, 0, "未找到对应模块" .. modue_name, proto.session)
         return
     end
     if not g_player_id then
-         accept.send_err(name, 0, "玩家未登录", proto.session)
+         send_err(name, 0, "玩家未登录", proto.session)
          return
-	end
-    -- Snx.post(handle, "player_msg", g_player_id, name, proto)
+    end
+    snax.bind(handle, modue_name).player_msg(g_player_id, name, proto)
 end
 
 local function get_proto_func(proto_name)
@@ -110,7 +110,7 @@ function accept.dispatch_proto(proto_name, body)
         return
 	end
 
-	local ok, ret, code, msg = xpcall(func, debug.traceback, proto_name, body)
+	local ok, ret, code, msg = xpcall(func, debug.traceback, body)
     if not ok then
 		D("error_handle", debug.traceback(ret, 2))
         send_err(proto_name, "COM_SYS_FAIL", "协议处理失败: " .. body, proto_name.session)
@@ -165,11 +165,11 @@ local function create_role(account_id, acc, device)
             extend = {},
         }
 
-    -- if not skynet.call(".dbmgr", "sync_save_data", "t_player", data, true) then
-    --     return false, "PLAYER_CREATE_DB_ERR", "数据库异常，创角失败"
-    -- end
+    if not skynet.call(".dbmgr", "lua", "sync_save_data", "t_player", data, true) then
+        return false, "PLAYER_CREATE_DB_ERR", "数据库异常，创角失败"
+    end
 
-    -- snax.bind(".agentmgr", "agentmgr").post.update_player(data.account_id, data.nick_name, data.avatar_id, data.sex)
+    snax.bind(".agentmgr", "agentmgr").post.update_player(data.account_id, data.nick_name, data.avatar_id, data.sex)
 
     -- 运营日志：用户ID + 账号 + 昵称 + 注册时间 + 注册渠道号 + 注册IP + 注册机器码 + 注册终端
     -- local dev = device or {}
@@ -199,8 +199,8 @@ function load_player_data(account_id, device)
     if not acc then
         return false, code, msg
     end
-    local dbmgr = snax.bind(".dbmgr", "dbmgr")
-    local dbdata = dbmgr.req.query_db_data("t_player", {account_id = account_id})
+
+    local dbdata = skynet.call(".dbmgr", "lua", "query_db_data", "t_player", {account_id = account_id})
     if not dbdata then
         return false, "PLAYER_LOAD_DATA_FAIL", "数据库异常"
     end
@@ -221,7 +221,7 @@ function load_player_data(account_id, device)
     g_player_id = account_id
 
     g_bagmgr = instance("bagmgr", g_player_id, g_player:is_binding())
-    local itemdata = dbmgr.req.query_db_data("t_item", {account_id = account_id})
+    local itemdata = skynet.call(".dbmgr", "lua", "query_db_data", "t_item", {account_id = account_id})
     g_bagmgr:load_data(itemdata)
     g_main_bag = g_bagmgr:get_bag(0)
 
