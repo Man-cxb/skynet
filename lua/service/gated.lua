@@ -7,6 +7,7 @@ local socketdriver = require "skynet.socketdriver"
 local protobuf = require "protobuf"
 local snax = require "snax"
 require "config"
+local cs = require("queue")()
 
 Shutting_down = Shutting_down
 
@@ -34,8 +35,7 @@ local function get_player_handle(proto, fd)
 	end
 
 	local agentmgr = snax.bind(target_handle, "agentmgr")
-	return agentmgr.req.try_login_agent(proto.account_id, fd, skynet.self())
-	-- local ok, code, msg = cs(agentmgr.req.try_login_agent(proto.account_id, fd, snax.self().handle))
+	return cs(agentmgr.req.try_login_agent, proto.account_id, fd, skynet.self())
 end
 
 -- 协议请求
