@@ -21,14 +21,6 @@ local gate_type, target_handle = ... -- 网关类型
 local agent_handle = {}
 local CMD = setmetatable({}, { __gc = function() netpack.clear(queue) end })
 
-local function send_socket_connect(fd)
-	if gate_type == "login" then
-		snax.bind(target_handle, "logind").post.socket_connect(fd)
-	elseif gate_type == "game" then
-
-	end
-end
-
 local function get_player_handle(proto, fd)
     if Shutting_down then
         return false, "PLAYER_SERVER_CLOSING", "正在关服中"
@@ -121,17 +113,20 @@ function SOCKET_MSG.open(fd, addr)
 
 	socketdriver.start(fd)
 	skynet.error("SOCKET_MSG.open", fd, addr)
-	send_socket_connect(fd)
+
+	if gate_type == "login" then
+		snax.bind(target_handle, "logind").post.socket_connect(fd)
+	end
 end
 
 local function disconnect(fd)
 	local u = user_fd[fd]
 	if u then
-		-- todo: socket断连处理
 		skynet.error("socket close: ", fd) 
+		socketdriver.close(fd)
 		client_number = client_number - 1
 		user_fd[fd] = nil
-		socketdriver.close(fd)
+
 	end
 end
 

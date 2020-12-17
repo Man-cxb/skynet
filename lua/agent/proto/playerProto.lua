@@ -2,7 +2,7 @@ local PlayerProto = register_proto_cb("player")
 
 function PlayerProto:cs_player_enter()
     D("玩家进入agent游戏")
-    local ok, code, res = load_player_data(self.account_id, self.device)
+    local ok, code, res = Load_player_data(self.account_id, self.device)
     if not ok then
         return false, code, res
     end
@@ -15,5 +15,4 @@ function PlayerProto:cs_player_enter()
     }
     send_client_proto("sc_player_role_data", player)
     -- send_client_proto("sc_player_account_info", g_player:get_acc_data())
-
 end

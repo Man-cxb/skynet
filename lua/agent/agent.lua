@@ -191,7 +191,7 @@ local function load_acc_data(account_id)
     return acc
 end
 
-function load_player_data(account_id, device)
+function Load_player_data(account_id, device)
     if g_player then
         return true
     end
@@ -232,5 +232,6 @@ function load_player_data(account_id, device)
             g_main_bag:add_item(v[1], v[2])
         end
     end
+    
     return true
 end

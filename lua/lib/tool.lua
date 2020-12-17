@@ -1,4 +1,6 @@
 local misc = require "misc"
+-- local skynet = require "skynet"
+
 D = print
 function V2S(val, max_dep, cur_dep, sp)
     max_dep = max_dep or 20
@@ -120,4 +122,8 @@ function deep_copy_table(tb, max_depth, cur_depth, cache)
     end
     return ret
 end
-  
+
+-- function Log(...)
+--     local head = string.format("[%s][:%08x]", os.date("%H:%M:%S", skynet.now()//100 + skynet.starttime()), skynet.self())
+--     print(head, ...)
+-- end

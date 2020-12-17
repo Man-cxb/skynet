@@ -10,7 +10,6 @@ function M:init(player_id, binding_flag)
 	for _, cfg in pairs(GetCfg("bag")) do
 		self.bag_list[cfg.id] = instance("bag", cfg.id, player_id, cfg, binding_flag)
 	end
-	D(V2S(self.bag_list))
 end
 
 function M:load_data(db_data)
