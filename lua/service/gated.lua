@@ -1,84 +1,120 @@
-require "common"
-require "tool"
 local skynet = require "skynet"
 require "skynet.manager"
 local netpack = require "skynet.netpack"
 local socketdriver = require "skynet.socketdriver"
 local protobuf = require "protobuf"
 local snax = require "snax"
-require "config"
 local cs = require("queue")()
+require "common"
+require "tool"
+require "config"
 
-Shutting_down = Shutting_down
+local strfmt = string.format
+local strsub = string.sub
+local strpack = string.pack
 
-local user_fd = {}
+local shutting_down = false
+local fd_list = {}
 local client_number = 0 -- 客户端连接数量
 local queue		-- message queue
 local maxclient	-- max client
 local nodelay = false
-local socket	-- listen socket
-local gate_type, target_handle = ... -- 网关类型
-local agent_handle = {}
-local CMD = setmetatable({}, { __gc = function() netpack.clear(queue) end })
+local gate_fd
+local KICK_TIME = 30
+local gate_type, master = ...
 
-local function get_player_handle(proto, fd)
-    if Shutting_down then
-        return false, "PLAYER_SERVER_CLOSING", "正在关服中"
+local function send_proto(fd, name, proto)
+	local proto_name = "proto." .. name
+    local str = protobuf.encode(proto_name, proto)
+    local transfer = { name = proto_name, body = str, session = proto.session}
+	local sendmsg = protobuf.encode("proto.transfer", transfer)
+	local package = strpack(">s2", sendmsg)
+	socketdriver.send(fd, package)
+end
+
+local function update_time(fd)
+	if fd_list[fd] then
+		fd_list[fd] = snax.time() + KICK_TIME
 	end
+end
 
-	local agentmgr = snax.bind(target_handle, "agentmgr")
-	return cs(agentmgr.req.try_login_agent, proto.account_id, fd, skynet.self())
+local request = {}
+local agent_handle = {}
+function request.login(fd, proto_name, body)
+	snax.bind(master, "logind").post.dispatch_proto(proto_name, body, fd)
+end
+
+function request.agent(fd, proto_name, body)
+	if agent_handle[fd] then
+		snax.bind(agent_handle[fd], "agent").post.dispatch_proto(proto_name, body, fd)
+	else
+		if proto_name ~= "cs_player_enter" then
+			send_proto(fd, "sc_err", {code = -1, proto_name = proto_name, content = "请先登陆游戏"})
+			return
+		end
+
+		local ok, code, handle = cs(snax.bind(master, "agentmgr").req.try_login_agent, body.account_id, fd, skynet.self())
+		if not ok then
+			send_proto(fd, "sc_err", {code = code or -1, proto_name = proto_name})
+			return
+		end
+		assert(handle, "玩家未正常登陆")
+		agent_handle[fd] = handle
+		snax.bind(handle, "agent").post.dispatch_proto(proto_name, body, fd)
+	end
+end
+
+function request.socket_disconnect(fd)
+	if agent_handle[fd] then
+		snax.bind(agent_handle[fd], "agent").post.socket_close()
+		agent_handle[fd] = nil
+	end
 end
 
 -- 协议请求
-local function do_request(fd, message)
-	local transfer = protobuf.decode("proto.transfer", message)
-	if transfer then
-		local body = protobuf.decode(transfer.name, transfer.body)
-		local proto_name = string.sub(transfer.name, 7)
-		-- skynet.error("gated accept proto:", proto_name, Tbtostr(body))
-
-		if gate_type == "login" then
-			snax.bind(target_handle, "logind").post.dispatch_proto(proto_name, body, fd)
-
-		elseif gate_type == "game" then
-			if agent_handle[fd] then
-				snax.bind(agent_handle[fd], "agent").post.dispatch_proto(proto_name, body, fd)
-			else
-				if proto_name == "cs_player_enter" then
-					local ok, code, handle = get_player_handle(body, fd)
-					if not ok then
-						CMD.send_proto(fd, "sc_err", {code = -1, proto_name = proto_name})
-						return
-					end
-					assert(handle, "玩家未正常登陆")
-					agent_handle[fd] = handle
-					snax.bind(handle, "agent").post.dispatch_proto(proto_name, body, fd)
-				else
-					skynet.error("玩家未在登陆服登陆，不能进入游戏服")
-				end
-			end
-		else
-			skynet.error("gated type error ", gate_type, target_handle)
-		end
+local function do_request(fd, proto_name, body)
+	local func = request[gate_type]
+	if func then
+		func(fd, proto_name, body)
 	else
-		skynet.error("gated proto ", fd, #message)
+		skynet.error("gate type error", gate_type)
 	end
 end
 
 local SOCKET_MSG = {}
 local function dispatch_msg(fd, msg, sz)
-	if user_fd[fd] then
-		local message = netpack.tostring(msg, sz)
-		local ok, err = pcall(do_request, fd, message)
-		if not ok then
-			skynet.error(string.format("Invalid package %s ", err))
-			user_fd[fd] = nil
-			socketdriver.close(fd)
-		end
-	else
-		skynet.error(string.format("Drop message from fd (%d) : %s", fd, netpack.tostring(msg,sz)))
+	if shutting_down then
+		send_proto(fd, "sc_err", {code = -999, content = "正在关服中"})
+		return
 	end
+
+	if not fd_list[fd] then
+		skynet.error(strfmt("Drop message from fd (%d) : %s", fd, netpack.tostring(msg,sz)))
+		skynet.trash(msg, sz)
+		return
+	end
+
+	-- 解析协议
+	local message = netpack.tostring(msg, sz)
+	local transfer = protobuf.decode("proto.transfer", message)
+	assert(transfer, strfmt("protobuf decode error: fd:%d, len:%d:", fd, #message))
+	local body = protobuf.decode(transfer.name, transfer.body)
+	assert(body, strfmt("protobuf decode error: fd:%d, name:%s", fd, transfer.name))
+	local proto_name = strsub(transfer.name, 7)
+
+	-- ping
+	if proto_name == "cs_ping" then
+		update_time(fd)
+		send_proto(fd, "sc_ping", {server_time = snax.time(), client_time = body.client_time})
+		return
+	end
+
+	-- 协议请求
+	local ok, err = pcall(do_request, fd, proto_name, body)
+	if not ok then
+		skynet.error(strfmt("Invalid package %s ", err))
+	end
+
 	skynet.trash(msg, sz)
 end
 SOCKET_MSG.data = dispatch_msg
@@ -108,42 +144,41 @@ function SOCKET_MSG.open(fd, addr)
 		socketdriver.nodelay(fd)
 	end
 
-	user_fd[fd] = true
+	fd_list[fd] = snax.time() + KICK_TIME
 	client_number = client_number + 1
 
 	socketdriver.start(fd)
 	skynet.error("SOCKET_MSG.open", fd, addr)
-
-	if gate_type == "login" then
-		snax.bind(target_handle, "logind").post.socket_connect(fd)
-	end
 end
 
-local function disconnect(fd)
-	local u = user_fd[fd]
-	if u then
-		skynet.error("socket close: ", fd) 
-		socketdriver.close(fd)
-		client_number = client_number - 1
-		user_fd[fd] = nil
+local function disconnect(fd, reason)
+	if not fd_list[fd] then
+		return
+	end
+	skynet.error("socket close: ", fd, reason)
+	socketdriver.close(fd)
+	client_number = client_number - 1
+	fd_list[fd] = nil
 
+	-- 通知agent连接断开
+	if gate_type == "agent" then
+		request.socket_disconnect(fd)
 	end
 end
 
 function SOCKET_MSG.close(fd)
-	if fd ~= socket then
-		-- send_socket_status(fd, "socket_close")
-		disconnect(fd)
+	if fd ~= gate_fd then
+		disconnect(fd, "client close")
 	else
-		socket = nil
+		gate_fd = nil
 	end
 end
 
 function SOCKET_MSG.error(fd, msg)
-	if fd == socket then
+	if fd == gate_fd then
 		skynet.error("gateserver accpet error:",msg)
 	else
-		disconnect(fd)
+		disconnect(fd, "socket error")
 	end
 end
 
@@ -156,64 +191,67 @@ skynet.register_protocol {
 	dispatch = function (_, _, q, _type, ...)
 		queue = q
 		if _type then
-			local fd, msg, sz = ...
-			skynet.error(string.format("gated socket msg: _type: %s, socket_fd: %s, msg: %s, sz: %s", _type, fd, msg, sz))
 			SOCKET_MSG[_type](...)
 		end
 	end
 }
 
-
-function CMD.open(conf)
-	assert(not socket)
+local LUA_CMD = setmetatable({}, { __gc = function() netpack.clear(queue) end })
+function LUA_CMD.open(conf)
+	assert(not gate_fd)
 	local address = conf.address or "0.0.0.0"
 	local port = assert(conf.port)
 	maxclient = conf.maxclient or 1024
 	nodelay = conf.nodelay
-	skynet.error(string.format("gate listen on %s:%d, from server:%s", address, port, gate_type))
-	socket = socketdriver.listen(address, port)
-	socketdriver.start(socket)
+	skynet.error(strfmt("gate listen on %s:%d", address, port))
+	gate_fd = socketdriver.listen(address, port)
+	socketdriver.start(gate_fd)
 end
 
-function CMD.close()
-	assert(socket)
-	socketdriver.close(socket)
+function LUA_CMD.close_gate()
+	assert(gate_fd)
+	skynet.error("gate close")
+	socketdriver.close(gate_fd)
 end
 
-local function send_package(fd, pack)
-	local package = string.pack(">s2", pack)
-	socketdriver.send(fd, package)
+function LUA_CMD.send_proto(fd, name, proto)
+	send_proto(fd, name, proto)
 end
 
-function CMD.send_proto(fd, name, proto)
-	local proto_name = "proto." .. name
-	-- skynet.error("gated send proto:",fd, proto_name, Tbtostr(proto))
-    local str = protobuf.encode(proto_name, proto)
-    local transfer = { name = proto_name, body = str, session = proto.session}
-	local sendmsg = protobuf.encode("proto.transfer", transfer)
-	send_package(fd, sendmsg)
+function LUA_CMD.close_fd(fd, reason)
+	disconnect(fd, reason)
 end
 
-function CMD.close_fd(fd)
-	disconnect(fd)
+function LUA_CMD.shutting_down()
+	shutting_down = true
+	cancel_timeout()
 end
 
-function CMD.time_out(fd)
-	agent_handle[fd] = nil
+function LUA_CMD.exit_service()
+	skynet.exit()
+end
+
+function on_timer()
+	-- 检查连接，超时断连
+	local now = snax.time()
+	for fd, time in pairs(fd_list) do
+		if now >= time then
+			disconnect(fd, "time out")
+		end
+	end
 end
 
 skynet.start(function()
 	skynet.dispatch("lua", function (_, address, cmd, ...)
-		-- skynet.error(string.format("gate dispatch lua: type: %s, param: %s", cmd, Tbtostr({...})))
-		local func = CMD[cmd]
-		if func then
-			skynet.ret(skynet.pack(func(...)))
-		else
-			skynet.error("cmd not found:", cmd)
+		local func = LUA_CMD[cmd]
+		if not func then
+			skynet.error("gate cmd not found:", cmd)
+			return
 		end
+		skynet.ret(skynet.pack(func(...)))
 	end)
 
 	register_proto()
 
-	skynet.register(gate_type)
+	cancel_timeout = interval_timeout(100, "on_timer")
 end)

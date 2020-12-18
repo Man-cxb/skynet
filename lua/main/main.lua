@@ -25,7 +25,7 @@ skynet.start(function()
     local harbar = tonumber(skynet.getenv("harbor"))
 	local cfg = GetCfg("system.harbor")[harbar]
     -- -- 启动游戏服网关
-    local game_gate = skynet.newservice("gated", "game", agentmgr_obj.handle)
+    local game_gate = skynet.newservice("gated", "agent", agentmgr_obj.handle)
     skynet.call(game_gate, "lua", "open" , {
         port = cfg.game_port,
         maxclient = cfg.max_game_conn

@@ -135,6 +135,10 @@ function accept.reconnect(fd, gate_handle, ip)
     g_gate_handle = gate_handle
 end
 
+function accept.socket_close()
+    skynet.error("与客户端断开连接")
+end
+
 function send_client_proto(name, body)
     show_proto("send", name, body)
 	skynet.send(g_gate_handle, "lua", "send_proto", g_agent_fd, name, body)

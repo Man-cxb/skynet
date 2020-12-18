@@ -17,10 +17,6 @@ Raw_acc_id = Raw_acc_id or 0
 Name_list = Name_list or {}
 Account_list = Account_list or {}
 Phone_list = Phone_list or {}
-Conn_list = Conn_list or {}
-
-Timeout_conn_map = Timeout_conn_map or {}
-Ping_time_out = Ping_time_out or 10
 
 local handle_list = {}
 function Get_service_handle(name)
@@ -35,8 +31,6 @@ function Get_service_handle(name)
 end
 
 local not_show_proto = {
-	["cs_ping"] = true,
-	["sc_ping"] = true,
 }
 function show_proto(title, name, proto)
 	if not_show_proto[name] then
@@ -91,6 +85,19 @@ function Check_smscode(fd, typ, code)
 	return true
 end
 
+function Change_passwd(new_pass, data)
+	if not new_pass or #new_pass < 8 or #new_pass > 20 then
+		return false, "LOGIN_PASSWD_ERR", "密码为8位以上字母或数字"
+	end
+	if string.match(new_pass, "%W") then
+		return false, "LOGIN_PASSWD_ERR", "密码为8位以上字母或数字"
+	end
+	data.passwd = md5.sumhexa(new_pass)
+	update_account(data)
+	skynet.post(".dbmgr", "lua", "save_data", "t_account", data)
+	return true
+end
+
 function Get_smscode(fd, typ)
 	local data = sms_list[fd]
 	if not data then
@@ -139,7 +146,7 @@ local function get_raw_acc_id()
 	return Raw_acc_id
 end
 
-local function update_account(data)
+function update_account(data)
 	Account_list[data.id] = data
 	Name_list[data.user] = data
 	if data.binding_time and data.binding_time > 0 and data.phone_number and data.binding_time ~= "" then
@@ -209,35 +216,9 @@ function Gen_login_key()
     return md5.sumhexa(str)
 end
 
-function Update_connect(fd, close, login)
-	local con = Conn_list[fd]
-	if con then
-		local list = Timeout_conn_map[con.expire_time]
-		if list then
-			list[fd] = nil
-			if not next(list) then
-				Timeout_conn_map[con.expire_time] = nil
-			end
-			if close then
-				Timeout_conn_map[0] = Timeout_conn_map[0] or {}
-				Timeout_conn_map[0][fd] = true
-				Conn_list[fd] = nil
-				return
-			end
-		end
-	end
-
-	if not close then
-		local expire_time = snax.time() + Ping_time_out
-		Conn_list[fd] = {expire_time = expire_time, login = login}
-		Timeout_conn_map[expire_time] = Timeout_conn_map[expire_time] or {}
-		Timeout_conn_map[expire_time][fd] = true
-	end
-end
-
-local function close_socket(fd, reason)
+function close_socket(fd, reason)
 	skynet.error("close socket ", fd, reason)
-	skynet.send(Login_gate, "lua", "close_fd", fd)
+	skynet.timeout(100, function() skynet.send(Login_gate, "lua", "close_fd", fd, reason) end)
 end
 
 function hotfix(...)
@@ -245,17 +226,7 @@ function hotfix(...)
 end
 
 function on_timer()
-	-- 检查连接，超时断连
-	local now = snax.time()
-	for time, conn_list in pairs(Timeout_conn_map) do
-		if now >= time then
-			for fd in pairs(conn_list) do
-				Conn_list[fd] = nil
-				-- close_socket(fd, "time_out")
-			end
-			Timeout_conn_map[time] = nil
-		end
-	end
+
 end
 
 function init()
@@ -307,16 +278,6 @@ function accept.dispatch_proto(proto_name, body, fd)
 	else
 		skynet.error("proto function not found:", proto_name, Tbtostr(body))
 	end
-end
-
-function accept.socket_connect(fd)
-    skynet.error("logind socket_connect", fd)
-    Update_connect(fd)
-end
-
-function accept.socket_close(fd)
-    skynet.error("logind socket_close", fd)
-    Update_connect(fd, true)
 end
 
 -- 从数据库加载所有帐户信息

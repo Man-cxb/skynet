@@ -53,7 +53,8 @@ function LoginProto:cs_login_create(fd)
 		port = server.port,
 	}
 	send_client_proto(fd, "sc_login_server_info", login_info)
-	Update_connect(fd, false, true)
+
+	close_socket(fd, "login done")
 end
 
 function LoginProto:cs_login_check_account(fd)
@@ -120,7 +121,7 @@ function LoginProto:cs_login_verify(fd)
 		port = server.port,
 	}
 	send_client_proto(fd, "sc_login_server_info", login_info)
-	Update_connect(fd, false, true)
+	close_socket(fd, "login done")
 end
 
 function LoginProto:cs_login_check_sms(fd)
@@ -136,29 +137,14 @@ function LoginProto:cs_login_reset_passwd(fd)
 	if not name then
 		return false, "LOGIN_ACC_NOT_EXISTS", "帐号不存在"
 	end
-	local data = name_list[name] or phone_list[name]
+	local data = Name_list[name] or Phone_list[name]
 	if not data then
 		return false, "LOGIN_ACC_NOT_EXISTS", "帐号不存在"
 	end
-	local ok, code, msg = check_smscode(fd, self.sms_type, self.sms_code)
+	local ok, code, msg = Check_smscode(fd, self.sms_type, self.sms_code)
 	if not ok then
 		return false, code, msg
 	end
 
-	local ok2, code2, msg2 = check_pass(self.new_passwd)
-	if not ok2 then
-		return false, code2, msg2
-	end
-	data.passwd = misc.md5(self.new_passwd):upper(),
-	update_account(data)
-	Snx.post(".dbmgr", "save_data", "t_account", data)
-	return true
-end
-
-function LoginProto:cs_ping(fd)
-    send_client_proto(fd, "sc_ping", {client_time = self.client_time or 0, server_time = snax.time()})
-    if Conn_list[fd] and Conn_list[fd].login then
-    	return
-    end
-    Update_connect(fd, false, false)
+	return Change_passwd(self.new_passwd, data)
 end

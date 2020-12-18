@@ -82,12 +82,12 @@ function PlayerProto:sc_login_vistor_info(fd)
 end
 
 function PlayerProto:sc_login_server_info(fd)
-    -- print("登陆服信息:", Tbtostr(self))
+    print("登陆服信息:", Tbtostr(self))
 
-    -- game_fd = assert(socket.connect(self.domain, self.port))
-    -- fd_list[game_fd] = {last = ""}
+    game_fd = assert(socket.connect(self.domain, self.port))
+    fd_list[game_fd] = {last = ""}
     
-    -- send_request(game_fd, "proto.cs_player_enter", {account_id = self.account_id, login_key = self.login_key})
+    send_request(game_fd, "proto.cs_player_enter", {account_id = self.account_id, login_key = self.login_key})
 end
 
 function PlayerProto:sc_player_role_data(fd)
