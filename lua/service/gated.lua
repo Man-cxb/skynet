@@ -191,7 +191,7 @@ skynet.register_protocol {
 	dispatch = function (_, _, q, _type, ...)
 		queue = q
 		if _type then
-			SOCKET_MSG[_type](...)
+			xpcall(SOCKET_MSG[_type], debug.traceback, ...)
 		end
 	end
 }

@@ -22,6 +22,17 @@ local function register_proto()
     end
 end
 
+local not_show_proto = {
+    ["sc_ping"] = true,
+    ["proto.cs_ping"] = true,
+}
+function show_proto(title, name, proto)
+	if not_show_proto[name] then
+        return
+	end
+	print(title .. ":", name, Tbtostr(proto))
+end
+
 -- 注册协议
 register_proto()
 
@@ -61,12 +72,11 @@ end
 
 local function send_package(fd, pack)
     local package = string.pack(">s2", pack)
-    print("发包长度:",#package, #pack )
 	socket.send(fd, package)
 end
 
 local function send_request(fd, name, args)
-    print("send_request：", fd, name, V2S(args))
+    show_proto("send", name, args)
 	local str = protobuf.encode(name, args)
     local msg = { name = name, body = str}
     local encodemsg = protobuf.encode("proto.transfer", msg)
@@ -113,7 +123,7 @@ local function dispatch_package(fd)
 		local transfer = protobuf.decode("proto.transfer", v)
         local msg = protobuf.decode(transfer.name, transfer.body)
         local proto_name = string.sub(transfer.name, 7)
-        print("客户端收到协议：", proto_name, V2S(msg))
+        show_proto("rec", proto_name, msg)
         local func = PlayerProto[proto_name]
         if func then
             func(msg, fd)
@@ -127,7 +137,10 @@ end
 -- send_request(game_fd, "proto.cs_player_enter", {account_id = 0, login_key = ""})
 send_request(login_fd, "proto.cs_login_verify", {type = 0})
 
+local index = 0
+local interval = 5
 while true do
+    index = index + 1
     if login_fd then
 	   if dispatch_package(login_fd) == "closed" then
             fd_list[login_fd] = nil
@@ -137,10 +150,12 @@ while true do
     end
     if game_fd then
         dispatch_package(game_fd)
-        -- send_request(game_fd, "proto.cs_ping", {client_time = os.time()})
+        if index % interval == 0 then
+            send_request(game_fd, "proto.cs_ping", {client_time = os.time()})
+        end
     end
-    if login_fd then
-        -- send_request(login_fd, "proto.cs_ping", {client_time = os.time()})
+    if login_fd and index % interval == 0 then
+        send_request(login_fd, "proto.cs_ping", {client_time = os.time()})
     end
     socket.usleep(1000000)
 end
