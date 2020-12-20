@@ -64,13 +64,6 @@ function request.agent(fd, proto_name, body)
 	end
 end
 
-function request.socket_disconnect(fd)
-	if agent_handle[fd] then
-		snax.bind(agent_handle[fd], "agent").post.socket_close()
-		agent_handle[fd] = nil
-	end
-end
-
 -- 协议请求
 local function do_request(fd, proto_name, body)
 	local func = request[gate_type]
@@ -161,8 +154,9 @@ local function disconnect(fd, reason)
 	fd_list[fd] = nil
 
 	-- 通知agent连接断开
-	if gate_type == "agent" then
-		request.socket_disconnect(fd)
+	if gate_type == "agent" and agent_handle[fd] then
+		snax.bind(agent_handle[fd], "agent").post.socket_close()
+		agent_handle[fd] = nil
 	end
 end
 
