@@ -36,5 +36,7 @@ skynet.start(function()
 
     skynet.register(".main")
 
+    skynet.newservice("httpd")
+
     all_snax = {login_obj, agentmgr_obj}
 end)
